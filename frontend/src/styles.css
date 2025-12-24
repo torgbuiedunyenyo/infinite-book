@@ -1,0 +1,178 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    background: #f8f5f0;
+}
+
+body {
+    font-family: 'EB Garamond', serif;
+    font-size: 20px;
+    line-height: 1.7;
+    color: #1a1a1a;
+}
+
+#book {
+    position: relative;
+    max-width: 700px;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 60px 50px;
+}
+
+#page {
+    position: relative;
+}
+
+#page-number {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    font-size: 14px;
+    color: #666;
+}
+
+#content {
+    text-align: justify;
+    hyphens: auto;
+}
+
+#content p {
+    margin-bottom: 1.5em;
+    text-indent: 1.5em;
+}
+
+#content p:first-child,
+#content h1 + p,
+#content h2 + p,
+#content h3 + p,
+#content hr + p {
+    text-indent: 0;
+}
+
+/* Markdown headings */
+#content h1 {
+    font-size: 1.6em;
+    font-weight: 500;
+    margin: 0 0 1em 0;
+    text-align: left;
+    text-indent: 0;
+}
+
+#content h2 {
+    font-size: 1.3em;
+    font-weight: 500;
+    margin: 1.5em 0 0.8em 0;
+    text-align: left;
+    text-indent: 0;
+}
+
+#content h3 {
+    font-size: 1.1em;
+    font-weight: 500;
+    font-style: italic;
+    margin: 1.2em 0 0.6em 0;
+    text-align: left;
+    text-indent: 0;
+}
+
+/* Horizontal rule */
+#content hr {
+    border: none;
+    text-align: center;
+    margin: 2em 0;
+}
+
+#content hr::before {
+    content: "* * *";
+    color: #666;
+    letter-spacing: 0.5em;
+}
+
+/* Emphasis */
+#content em {
+    font-style: italic;
+}
+
+#content strong {
+    font-weight: 600;
+}
+
+/* Block quotes */
+#content blockquote {
+    margin: 1.5em 2em;
+    padding-left: 1em;
+    border-left: 2px solid #c0c0d0;
+    font-style: italic;
+}
+
+#content blockquote p {
+    text-indent: 0;
+}
+
+.reference {
+    color: #4a4a6a;
+    text-decoration: none;
+    border-bottom: 1px solid #c0c0d0;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.reference:hover {
+    border-color: #4a4a6a;
+}
+
+.nav-zone {
+    position: fixed;
+    top: 0;
+    width: 100px;
+    height: 100%;
+    cursor: pointer;
+    z-index: 10;
+}
+
+#nav-left {
+    left: 0;
+}
+
+#nav-right {
+    right: 0;
+}
+
+#content.loading {
+    opacity: 0.6;
+}
+
+.streaming-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background: #1a1a1a;
+    margin-left: 2px;
+    animation: blink 1s infinite;
+    vertical-align: text-bottom;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+@media (max-width: 768px) {
+    body {
+        font-size: 18px;
+    }
+    
+    #book {
+        padding: 40px 30px;
+    }
+    
+    .nav-zone {
+        width: 60px;
+    }
+}
+

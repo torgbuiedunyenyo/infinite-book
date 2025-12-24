@@ -1,0 +1,331 @@
+---
+description: Claude Opus 4.5 and Sonnet 4.5 API documentation and usage guidelines
+globs: ["**/*.py", "**/*.ts", "**/*.js"]
+alwaysApply: false
+---
+
+# Claude 4.5 API Reference
+
+Anthropic's Claude 4.5 family includes two powerful models: Opus 4.5 (flagship) and Sonnet 4.5 (balanced performance).
+
+---
+
+## Model Comparison
+
+| Feature | Opus 4.5 | Sonnet 4.5 |
+|---------|----------|------------|
+| Release Date | November 24, 2025 | September 29, 2025 |
+| Model ID | `claude-opus-4-5-20251101` | `claude-sonnet-4-5-20250929` |
+| Input Cost | $5 / million tokens | $3 / million tokens |
+| Output Cost | $25 / million tokens | $15 / million tokens |
+| SWE-bench Score | 80.9% | 77.2% |
+| Context Window | 200,000 tokens | 200,000 tokens |
+| Best For | Complex reasoning, enterprise tasks | Balanced performance, extended tasks |
+
+---
+
+## Claude Opus 4.5
+
+Anthropic's most advanced flagship model, launched November 24, 2025.
+
+### Model Identifier
+
+```
+claude-opus-4-5-20251101
+```
+
+### Key Capabilities
+
+- **State-of-the-Art Coding**: 80.9% on SWE-Bench Verified benchmark (surpassing GPT-5.1 Codex Max and Gemini 3 Pro)
+- **Autonomous Agents**: Excels at creating self-refining agents that retain insights across tasks
+- **Extended Thinking**: Deep reasoning with configurable token budgets
+- **Code Execution**: Server-side sandboxed Python execution
+- **Enterprise Operations**: Advanced spreadsheet management, financial modeling, and forecasting
+- **Enhanced Security**: Improved defenses against prompt injection attacks
+
+### Pricing
+
+| Type | Cost |
+|------|------|
+| Input Tokens | $5 per million tokens |
+| Output Tokens | $25 per million tokens |
+
+---
+
+## Claude Sonnet 4.5
+
+A balanced, high-performance model optimized for coding, agentic tasks, and extended autonomous operation. Released September 29, 2025.
+
+### Model Identifier
+
+```
+claude-sonnet-4-5-20250929
+```
+
+### Key Capabilities
+
+- **Advanced Coding**: 77.2% on SWE-Bench Verified benchmark
+- **Extended Autonomous Operation**: Maintains focus on multi-step tasks for 30+ hours
+- **Enhanced Tool Coordination**: Improved integration for complex workflows and agentic tasks
+- **Multimodal Capabilities**: Leading zero-shot accuracy in medical and scientific reasoning
+- **Domain Expertise**: Specialized knowledge in finance, law, medicine, and STEM
+- **Safety Alignment**: ASL-3 protections reducing sycophancy, deception, and prompt injection vulnerabilities
+
+### Pricing
+
+| Type | Cost |
+|------|------|
+| Input Tokens | $3 per million tokens |
+| Output Tokens | $15 per million tokens |
+
+---
+
+## Python Usage
+
+```python
+import anthropic
+
+client = anthropic.Anthropic()
+
+# Using Opus 4.5 (flagship)
+message = client.messages.create(
+    model="claude-opus-4-5-20251101",
+    max_tokens=1024,
+    messages=[
+        {"role": "user", "content": "Your prompt here"}
+    ]
+)
+
+# Using Sonnet 4.5 (balanced)
+message = client.messages.create(
+    model="claude-sonnet-4-5-20250929",
+    max_tokens=1024,
+    messages=[
+        {"role": "user", "content": "Your prompt here"}
+    ]
+)
+
+print(message.content[0].text)
+```
+
+## TypeScript/JavaScript Usage
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();
+
+// Using Opus 4.5
+const opusMessage = await client.messages.create({
+  model: "claude-opus-4-5-20251101",
+  max_tokens: 1024,
+  messages: [
+    { role: "user", content: "Your prompt here" }
+  ],
+});
+
+// Using Sonnet 4.5
+const sonnetMessage = await client.messages.create({
+  model: "claude-sonnet-4-5-20250929",
+  max_tokens: 1024,
+  messages: [
+    { role: "user", content: "Your prompt here" }
+  ],
+});
+
+console.log(opusMessage.content[0].text);
+```
+
+## With System Prompt
+
+```python
+message = client.messages.create(
+    model="claude-opus-4-5-20251101",  # or "claude-sonnet-4-5-20250929"
+    max_tokens=1024,
+    system="You are a helpful coding assistant.",
+    messages=[
+        {"role": "user", "content": "Your prompt here"}
+    ]
+)
+```
+
+## Streaming
+
+```python
+with client.messages.stream(
+    model="claude-opus-4-5-20251101",  # or "claude-sonnet-4-5-20250929"
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Your prompt here"}]
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+```
+
+## Extended Thinking (Interleaved)
+
+Enable deep reasoning with configurable token budgets. Works with both Opus 4.5 and Sonnet 4.5.
+
+> **Note**: The beta header `anthropic-beta: interleaved-thinking-2025-05-14` may not be required when using newer SDK versions. The tribe-airtable project uses extended thinking without the beta header successfully.
+
+### Key Limits
+
+| Parameter | Limit | Notes |
+|-----------|-------|-------|
+| `max_tokens` | 64,000 | Maximum output tokens for Opus 4.5 |
+| `budget_tokens` | Up to 200,000 | With interleaved thinking, can exceed max_tokens |
+| Context window | 200,000 | Total context limit |
+
+> **Important**: With high `budget_tokens` values, the API requires streaming for operations that may take longer than 10 minutes.
+
+```python
+with client.messages.stream(
+    model="claude-opus-4-5-20251101",  # or "claude-sonnet-4-5-20250929"
+    max_tokens=64000,  # Maximum output for Opus 4.5
+    thinking={
+        "type": "enabled",
+        "budget_tokens": 200000  # Can exceed max_tokens with interleaved thinking
+    },
+    messages=[{"role": "user", "content": "Solve this complex problem..."}],
+    extra_headers={
+        "anthropic-beta": "interleaved-thinking-2025-05-14"
+    }
+) as stream:
+    for event in stream:
+        if event.type == "content_block_delta":
+            if event.delta.type == "thinking_delta":
+                print(f"[THINKING] {event.delta.thinking}", end="")
+            elif event.delta.type == "text_delta":
+                print(event.delta.text, end="")
+```
+
+### Thinking Response Blocks
+
+When thinking is enabled, responses contain multiple block types:
+
+```python
+# Content blocks can be:
+# - {"type": "thinking", "thinking": "...", "signature": "..."}
+# - {"type": "text", "text": "..."}
+# - {"type": "tool_use", "id": "...", "name": "...", "input": {...}}
+```
+
+### CRITICAL: Thinking Signature Requirement
+
+When sending thinking blocks back to the API in multi-turn conversations, you **MUST** include the `signature` field:
+
+```python
+# Get complete blocks from stream snapshot (includes signature)
+for block in stream.current_message_snapshot.content:
+    if block.type == "thinking":
+        content_blocks.append({
+            "type": "thinking",
+            "thinking": block.thinking,
+            "signature": block.signature  # REQUIRED for API calls
+        })
+```
+
+**Error if signature missing**: `messages.1.content.0.thinking.signature: Field required`
+
+## Code Execution Tool
+
+Anthropic's sandboxed Python execution environment. Requires beta header.
+
+```python
+CODE_EXECUTION_TOOL = {
+    "type": "code_execution_20250825",
+    "name": "code_execution"
+}
+
+with client.messages.stream(
+    model="claude-opus-4-5-20251101",  # or "claude-sonnet-4-5-20250929"
+    max_tokens=64000,  # Maximum output for Opus 4.5
+    tools=[CODE_EXECUTION_TOOL],  # Add to tools list
+    messages=[{"role": "user", "content": "Calculate the first 10 prime numbers"}],
+    extra_headers={
+        "anthropic-beta": "interleaved-thinking-2025-05-14,code-execution-2025-08-25"
+    }
+) as stream:
+    # Handle events...
+```
+
+### Code Execution Block Types
+
+When Claude uses code execution, you'll see these block types:
+
+- `server_tool_use` - Claude requesting code execution
+- `code_execution_tool_result` - Results from execution
+
+**Note**: The tool may appear as `bash_code_execution` in some events. Code execution is handled server-side by Anthropic - you don't need to execute it yourself.
+
+## Tool Use
+
+```python
+message = client.messages.create(
+    model="claude-opus-4-5-20251101",  # or "claude-sonnet-4-5-20250929"
+    max_tokens=1024,
+    tools=[
+        {
+            "name": "get_weather",
+            "description": "Get the current weather in a location",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "City and state, e.g. San Francisco, CA"
+                    }
+                },
+                "required": ["location"]
+            }
+        }
+    ],
+    messages=[{"role": "user", "content": "What's the weather in London?"}]
+)
+```
+
+## Availability
+
+- Anthropic API (direct)
+- Amazon Bedrock
+- Google Cloud Vertex AI
+- Microsoft Foundry
+- GitHub Copilot (public preview)
+
+## Beta Headers Reference
+
+| Feature | Header Value |
+|---------|--------------|
+| Interleaved Thinking | `interleaved-thinking-2025-05-14` |
+| Code Execution | `code-execution-2025-08-25` |
+
+Combine with comma: `"anthropic-beta": "interleaved-thinking-2025-05-14,code-execution-2025-08-25"`
+
+## Streaming Event Types
+
+When streaming with extended thinking:
+
+| Event Type | Delta Type | Content |
+|------------|------------|---------|
+| `content_block_start` | - | Block begins (thinking/text/tool_use) |
+| `content_block_delta` | `thinking_delta` | `.thinking` - thinking text chunk |
+| `content_block_delta` | `text_delta` | `.text` - response text chunk |
+| `content_block_delta` | `input_json_delta` | `.partial_json` - tool input chunk |
+| `content_block_stop` | - | Block complete |
+| `message_delta` | - | `.stop_reason` - why message ended |
+
+### Stop Reasons
+
+- `end_turn` - Natural completion
+- `tool_use` - Claude wants to use a tool (continue agentic loop)
+- `max_tokens` - Hit token limit
+
+## Best Practices
+
+1. **Use Opus for complex tasks**: Opus 4.5 excels at multi-step reasoning, coding, and agentic workflows
+2. **Use Sonnet for extended tasks**: Sonnet 4.5 maintains performance over 30+ hour autonomous operations
+3. **Enable extended thinking**: Set `thinking.budget_tokens` (e.g., 10000) for complex reasoning
+4. **Use stream snapshots**: Access `stream.current_message_snapshot.content` for complete blocks with signatures
+5. **Preserve thinking signatures**: Always include `signature` field when sending thinking blocks back to API
+6. **Handle tool loops**: When `stop_reason == "tool_use"`, execute tools and continue the conversation
+7. **Code execution**: Let Anthropic handle it server-side - just pass through results
+.

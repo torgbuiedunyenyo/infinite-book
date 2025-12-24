@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+/Users/ratpartyserver/git/library-of-babel/backend/.env
+/Users/ratpartyserver/git/library-of-babel/backend/.env.local
