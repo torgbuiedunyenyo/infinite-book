@@ -1,0 +1,26 @@
+{
+  "name": "library-of-babel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Infinite Book - A boundless library that contains every book that could ever be written",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build": "npm run build:frontend && npm run build:backend && mkdir -p backend/dist/frontend && cp -r frontend/dist/* backend/dist/frontend/",
+    "start": "cd backend && npm start",
+    "dev": "echo 'Run backend and frontend dev servers separately - see README.md'"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "infinite-book",
+    "library-of-babel",
+    "borges",
+    "ai-generated",
+    "literature"
+  ],
+  "license": "MIT"
+}
+

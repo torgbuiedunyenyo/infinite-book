@@ -16,11 +16,11 @@ app.use(express.json());
 app.use('/api', pagesRouter);
 
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend')));
+  app.use(express.static(path.join(__dirname, 'frontend')));
   
   app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(__dirname, '../frontend/index.html'));
+      res.sendFile(path.join(__dirname, 'frontend/index.html'));
     }
   });
 }
