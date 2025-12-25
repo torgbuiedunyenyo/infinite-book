@@ -16,12 +16,23 @@ import {
   onReferenceClick,
 } from './renderer';
 import { PageData, Reference } from './types';
+import { appLogger, apiLogger, cacheLogger } from './logger';
+
+const log = appLogger;
 
 const prefetchCache = new Map<string, PageData>();
 const prefetchInProgress = new Set<string>();
 
 // Track the current page's content for referrer context
 let currentPageContent: string | null = null;
+
+// Stats tracking
+let totalNavigations = 0;
+let cacheHits = 0;
+let cacheMisses = 0;
+let prefetchCount = 0;
+let streamCount = 0;
+let errorCount = 0;
 
 // Extract references from raw text (for error recovery when 'complete' event wasn't received)
 function extractReferencesFromText(text: string): Reference[] {
@@ -34,6 +45,12 @@ function extractReferencesFromText(text: string): Reference[] {
       refs.push({ text: refText, seed: refText });
     }
   }
+  
+  log.debug('Extracted references from text', {
+    referenceCount: refs.length,
+    references: refs.map(r => r.text),
+  });
+  
   return refs;
 }
 
@@ -47,21 +64,69 @@ function locationKey(seed: string, page: number): string {
 }
 
 async function fetchRandomSeed(): Promise<string> {
-  const res = await fetch('/api/random-seed');
-  const data = await res.json();
-  return data.seed;
+  apiLogger.info('Fetching random seed from server');
+  const startTime = performance.now();
+  
+  try {
+    const res = await fetch('/api/random-seed');
+    const data = await res.json();
+    const duration = performance.now() - startTime;
+    
+    apiLogger.info('Random seed received', {
+      seed: data.seed,
+      duration: `${duration.toFixed(2)}ms`,
+    });
+    
+    return data.seed;
+  } catch (error) {
+    errorCount++;
+    apiLogger.error('Failed to fetch random seed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 }
 
 async function fetchPageStreaming(seed: string, page: number, referrer?: ReferrerInfo): Promise<void> {
   const key = locationKey(seed, page);
+  streamCount++;
   
+  log.separator(`STREAMING PAGE: "${seed}" p.${page}`);
+  
+  log.info('Starting page fetch (streaming)', {
+    seed,
+    page,
+    hasReferrer: !!referrer,
+    referrerSeed: referrer?.seed,
+    referrerPage: referrer?.page,
+    streamCount,
+  });
+  
+  // Check prefetch cache first
   const cached = prefetchCache.get(key);
   if (cached) {
     prefetchCache.delete(key);
+    cacheHits++;
+    
+    cacheLogger.info('Prefetch cache HIT', {
+      key,
+      contentLength: cached.content.length,
+      cacheHits,
+      cacheSize: prefetchCache.size,
+    });
+    
     currentPageContent = cached.content;
     renderContent(cached.content, cached.references);
     return;
   }
+  
+  cacheMisses++;
+  cacheLogger.debug('Prefetch cache MISS', {
+    key,
+    cacheMisses,
+    cacheSize: prefetchCache.size,
+    inProgress: Array.from(prefetchInProgress),
+  });
   
   clearContent();
   
@@ -69,23 +134,61 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
   let url = `/api/page/stream?seed=${encodeURIComponent(seed)}&page=${page}`;
   if (referrer && page === 1) {
     url += `&referrerSeed=${encodeURIComponent(referrer.seed)}&referrerPage=${referrer.page}`;
+    log.debug('Including referrer context in request', {
+      referrerSeed: referrer.seed,
+      referrerPage: referrer.page,
+    });
   }
+  
+  apiLogger.info('Opening SSE connection', { url });
+  const startTime = performance.now();
   
   const eventSource = new EventSource(url);
   
   let references: Reference[] = [];
   let streamedContent = '';
+  let chunkCount = 0;
+  let firstChunkTime: number | null = null;
   
   return new Promise((resolve, reject) => {
     eventSource.addEventListener('existing', (e) => {
       const data = JSON.parse((e as MessageEvent).data) as PageData;
+      const duration = performance.now() - startTime;
+      
+      apiLogger.info('SSE: Received existing page', {
+        seed: data.seed,
+        pageNumber: data.pageNumber,
+        contentLength: data.content.length,
+        referencesCount: data.references.length,
+        duration: `${duration.toFixed(2)}ms`,
+      });
+      
       currentPageContent = data.content;
       renderContent(data.content, data.references);
     });
     
     eventSource.addEventListener('chunk', (e) => {
       const data = JSON.parse((e as MessageEvent).data);
+      chunkCount++;
       streamedContent += data.text;
+      
+      if (firstChunkTime === null) {
+        firstChunkTime = performance.now() - startTime;
+        apiLogger.info('SSE: First chunk received', {
+          timeToFirstChunk: `${firstChunkTime.toFixed(2)}ms`,
+          chunkLength: data.text.length,
+        });
+      }
+      
+      // Log every 20th chunk
+      if (chunkCount % 20 === 0) {
+        apiLogger.debug('SSE: Streaming progress', {
+          chunkCount,
+          totalChars: streamedContent.length,
+          elapsedTime: `${(performance.now() - startTime).toFixed(2)}ms`,
+        });
+      }
+      
       appendChunk(streamedContent);  // Pass full accumulated text, not just the chunk
     });
     
@@ -93,21 +196,56 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
       const data = JSON.parse((e as MessageEvent).data);
       references = data.references;
       currentPageContent = streamedContent;
+      
+      apiLogger.info('SSE: Generation complete', {
+        seed: data.seed,
+        pageNumber: data.pageNumber,
+        referencesCount: references.length,
+        references: references.map(r => r.text),
+        isNewDiscovery: data.isNewDiscovery,
+      });
     });
     
     eventSource.addEventListener('done', () => {
+      const totalDuration = performance.now() - startTime;
       eventSource.close();
+      
       // Always finalize to remove cursor and convert [[refs]] to links
       // If we didn't get references from 'complete' event, extract them from text
       if (references.length === 0) {
+        log.debug('No references from complete event, extracting from text');
         references = extractReferencesFromText(streamedContent);
       }
+      
       finalizeStreaming(streamedContent, references);
+      
+      apiLogger.info('SSE: Stream completed', {
+        seed,
+        page,
+        totalDuration: `${totalDuration.toFixed(2)}ms`,
+        timeToFirstChunk: firstChunkTime ? `${firstChunkTime.toFixed(2)}ms` : 'N/A',
+        totalChunks: chunkCount,
+        contentLength: streamedContent.length,
+        referencesCount: references.length,
+      });
+      
       resolve();
     });
     
     eventSource.addEventListener('error', (e) => {
+      const duration = performance.now() - startTime;
       eventSource.close();
+      errorCount++;
+      
+      apiLogger.error('SSE: Stream error', {
+        seed,
+        page,
+        duration: `${duration.toFixed(2)}ms`,
+        chunksReceived: chunkCount,
+        contentReceived: streamedContent.length,
+        errorCount,
+      });
+      
       // Still finalize the streamed content even on error - content was already displayed
       // Extract references from the streamed text since we may not have received the 'complete' event
       const extractedRefs = extractReferencesFromText(streamedContent);
@@ -120,19 +258,58 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
 async function prefetchPage(seed: string, page: number): Promise<void> {
   const key = locationKey(seed, page);
   
-  if (prefetchCache.has(key) || prefetchInProgress.has(key)) {
+  if (prefetchCache.has(key)) {
+    cacheLogger.debug('Prefetch skipped: already cached', { key });
+    return;
+  }
+  
+  if (prefetchInProgress.has(key)) {
+    cacheLogger.debug('Prefetch skipped: already in progress', { key });
     return;
   }
   
   prefetchInProgress.add(key);
+  prefetchCount++;
+  
+  cacheLogger.info('Starting prefetch', {
+    seed,
+    page,
+    key,
+    prefetchCount,
+    cacheSize: prefetchCache.size,
+  });
+  
+  const startTime = performance.now();
   
   try {
     const res = await fetch(`/api/page?seed=${encodeURIComponent(seed)}&page=${page}`);
+    const duration = performance.now() - startTime;
+    
     if (res.ok) {
       const data = await res.json() as PageData;
       prefetchCache.set(key, data);
+      
+      cacheLogger.info('Prefetch completed', {
+        key,
+        contentLength: data.content.length,
+        isNewDiscovery: data.isNewDiscovery,
+        duration: `${duration.toFixed(2)}ms`,
+        cacheSize: prefetchCache.size,
+      });
+    } else {
+      cacheLogger.warn('Prefetch failed: bad response', {
+        key,
+        status: res.status,
+        duration: `${duration.toFixed(2)}ms`,
+      });
     }
   } catch (e) {
+    const duration = performance.now() - startTime;
+    cacheLogger.warn('Prefetch failed: network error', {
+      key,
+      error: e instanceof Error ? e.message : String(e),
+      duration: `${duration.toFixed(2)}ms`,
+    });
     // Prefetch failure is non-critical
   } finally {
     prefetchInProgress.delete(key);
@@ -140,19 +317,53 @@ async function prefetchPage(seed: string, page: number): Promise<void> {
 }
 
 async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): Promise<void> {
+  totalNavigations++;
+  
+  log.separator(`NAVIGATION #${totalNavigations}`);
+  
+  log.info('Navigating to page', {
+    seed,
+    page,
+    hasReferrer: !!referrer,
+    referrerSeed: referrer?.seed,
+    totalNavigations,
+    cacheHitRate: totalNavigations > 1 ? `${((cacheHits / (totalNavigations - 1)) * 100).toFixed(1)}%` : 'N/A',
+  });
+  
   setCurrentLocation({ seed, page });
   setPageNumber(page);
   setLoading(true);
   
+  const startTime = performance.now();
+  
   try {
     await fetchPageStreaming(seed, page, referrer);
+    
+    const duration = performance.now() - startTime;
+    log.info('Navigation complete', {
+      seed,
+      page,
+      duration: `${duration.toFixed(2)}ms`,
+    });
+    
+    // Prefetch adjacent pages
+    log.debug('Starting prefetch of adjacent pages', {
+      nextPage: page + 1,
+      prevPage: page > 1 ? page - 1 : 'N/A',
+    });
     
     prefetchPage(seed, page + 1);
     if (page > 1) {
       prefetchPage(seed, page - 1);
     }
   } catch (e) {
-    console.error('Navigation error:', e);
+    const duration = performance.now() - startTime;
+    log.error('Navigation failed', {
+      seed,
+      page,
+      duration: `${duration.toFixed(2)}ms`,
+      error: e instanceof Error ? e.message : String(e),
+    });
   } finally {
     setLoading(false);
   }
@@ -160,61 +371,141 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
 
 function handleNavLeft(): void {
   const loc = getCurrentLocation();
+  
+  log.debug('Left navigation triggered', {
+    currentSeed: loc?.seed,
+    currentPage: loc?.page,
+    canGoLeft: loc && loc.page > 1,
+  });
+  
   if (loc && loc.page > 1) {
+    log.info('Flipping backward', {
+      from: loc.page,
+      to: loc.page - 1,
+    });
     navigateTo(loc.seed, loc.page - 1);
+  } else {
+    log.debug('At first page, cannot go left');
   }
 }
 
 function handleNavRight(): void {
   const loc = getCurrentLocation();
+  
+  log.debug('Right navigation triggered', {
+    currentSeed: loc?.seed,
+    currentPage: loc?.page,
+  });
+  
   if (loc) {
+    log.info('Flipping forward', {
+      from: loc.page,
+      to: loc.page + 1,
+    });
     navigateTo(loc.seed, loc.page + 1);
   }
 }
 
 function handleReferenceClick(seed: string): void {
+  log.separator(`REFERENCE CLICKED: "${seed}"`);
+  
   // Pass the current location as referrer context so the new book
   // can be contextualized by where the reference was clicked
   const currentLoc = getCurrentLocation();
   const referrer = currentLoc ? { seed: currentLoc.seed, page: currentLoc.page } : undefined;
+  
+  log.info('Following reference to new book', {
+    referenceSeed: seed,
+    fromSeed: referrer?.seed,
+    fromPage: referrer?.page,
+  });
+  
   navigateTo(seed, 1, referrer);
 }
 
 function handleKeyDown(e: KeyboardEvent): void {
+  log.debug('Key pressed', {
+    key: e.key,
+    code: e.code,
+    ctrlKey: e.ctrlKey,
+    shiftKey: e.shiftKey,
+  });
+  
   if (e.key === 'ArrowLeft') {
     handleNavLeft();
   } else if (e.key === 'ArrowRight') {
     handleNavRight();
   } else if (e.key === 'Backspace') {
+    log.info('Backspace pressed - attempting to go back in history');
     const prev = goBack();
     if (prev) {
+      log.info('Going back in history', {
+        toSeed: prev.seed,
+        toPage: prev.page,
+      });
       setPageNumber(prev.page);
       fetchPageStreaming(prev.seed, prev.page);
+    } else {
+      log.debug('No history to go back to');
     }
   }
 }
 
 async function init(): Promise<void> {
+  log.separator('THE INFINITE BOOK - INITIALIZING');
+  
+  log.info('Starting application initialization');
+  
+  // Set up click handlers
+  log.debug('Setting up navigation click handlers');
   document.getElementById('nav-left')!.addEventListener('click', handleNavLeft);
   document.getElementById('nav-right')!.addEventListener('click', handleNavRight);
   
+  // Set up keyboard handlers
+  log.debug('Setting up keyboard handlers');
   document.addEventListener('keydown', handleKeyDown);
   
+  // Set up reference click handler
+  log.debug('Setting up reference click handler');
   onReferenceClick(handleReferenceClick);
   
+  // Set up browser history handler
+  log.debug('Setting up browser history (popstate) handler');
   setupPopStateHandler((loc) => {
+    log.info('Browser history navigation', {
+      seed: loc.seed,
+      page: loc.page,
+    });
     navigateTo(loc.seed, loc.page);
   });
   
+  // Parse initial URL
+  log.debug('Parsing initial URL');
   let location = parseURL();
   
-  if (!location) {
+  if (location) {
+    log.info('Starting from URL location', {
+      seed: location.seed,
+      page: location.page,
+    });
+  } else {
+    log.info('No URL location, fetching random seed');
     const seed = await fetchRandomSeed();
     location = { seed, page: 1 };
+    log.info('Starting from random seed', {
+      seed: location.seed,
+    });
   }
+  
+  log.separator('INITIALIZATION COMPLETE - STARTING NAVIGATION');
   
   navigateTo(location.seed, location.page);
 }
 
-init();
+// Log startup
+log.info('App module loaded', {
+  timestamp: new Date().toISOString(),
+  userAgent: navigator.userAgent.slice(0, 100),
+});
 
+init();
