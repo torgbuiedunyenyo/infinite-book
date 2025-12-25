@@ -17,10 +17,12 @@ log.debug('Marked configured', {
 
 const contentEl = document.getElementById('content')!;
 const pageNumberEl = document.getElementById('page-number')!;
+const navLeftEl = document.getElementById('nav-left')!;
 
 log.debug('DOM elements captured', {
   contentEl: !!contentEl,
   pageNumberEl: !!pageNumberEl,
+  navLeftEl: !!navLeftEl,
 });
 
 let currentReferences: Reference[] = [];
@@ -34,6 +36,16 @@ let referenceClickCount = 0;
 export function setPageNumber(num: number): void {
   log.debug('Setting page number', { pageNumber: num });
   pageNumberEl.textContent = `p. ${num}`;
+}
+
+export function updateNavArrows(pageNumber: number): void {
+  log.debug('Updating nav arrows', { pageNumber, isFirstPage: pageNumber === 1 });
+  
+  if (pageNumber === 1) {
+    navLeftEl.classList.add('disabled');
+  } else {
+    navLeftEl.classList.remove('disabled');
+  }
 }
 
 export function clearContent(): void {

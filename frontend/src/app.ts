@@ -14,6 +14,7 @@ import {
   appendChunk,
   finalizeStreaming,
   onReferenceClick,
+  updateNavArrows,
 } from './renderer';
 import { PageData, Reference } from './types';
 import { appLogger, apiLogger, cacheLogger } from './logger';
@@ -332,6 +333,7 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
   
   setCurrentLocation({ seed, page });
   setPageNumber(page);
+  updateNavArrows(page);
   setLoading(true);
   
   const startTime = performance.now();
