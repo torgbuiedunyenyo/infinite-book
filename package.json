@@ -12,7 +12,7 @@
     "dev": "echo 'Run backend and frontend dev servers separately - see README.md'"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
   },
   "keywords": [
     "infinite-book",
