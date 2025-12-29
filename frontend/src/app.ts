@@ -150,6 +150,7 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
   let streamedContent = '';
   let chunkCount = 0;
   let firstChunkTime: number | null = null;
+  let receivedExistingPage = false;  // Track if we got an existing page (no streaming needed)
   
   return new Promise((resolve, reject) => {
     eventSource.addEventListener('existing', (e) => {
@@ -164,6 +165,7 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
         duration: `${duration.toFixed(2)}ms`,
       });
       
+      receivedExistingPage = true;  // Mark that we received an existing page
       currentPageContent = data.content;
       renderContent(data.content, data.references);
     });
@@ -211,14 +213,17 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
       const totalDuration = performance.now() - startTime;
       eventSource.close();
       
-      // Always finalize to remove cursor and convert [[refs]] to links
-      // If we didn't get references from 'complete' event, extract them from text
-      if (references.length === 0) {
-        log.debug('No references from complete event, extracting from text');
-        references = extractReferencesFromText(streamedContent);
+      // Only finalize streaming if we actually streamed content (not for existing pages)
+      // Existing pages are already rendered via renderContent() in the 'existing' handler
+      if (!receivedExistingPage) {
+        // If we didn't get references from 'complete' event, extract them from text
+        if (references.length === 0) {
+          log.debug('No references from complete event, extracting from text');
+          references = extractReferencesFromText(streamedContent);
+        }
+        
+        finalizeStreaming(streamedContent, references);
       }
-      
-      finalizeStreaming(streamedContent, references);
       
       apiLogger.info('SSE: Stream completed', {
         seed,
@@ -226,8 +231,9 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
         totalDuration: `${totalDuration.toFixed(2)}ms`,
         timeToFirstChunk: firstChunkTime ? `${firstChunkTime.toFixed(2)}ms` : 'N/A',
         totalChunks: chunkCount,
-        contentLength: streamedContent.length,
+        contentLength: receivedExistingPage ? 'existing' : streamedContent.length,
         referencesCount: references.length,
+        wasExistingPage: receivedExistingPage,
       });
       
       resolve();
@@ -245,12 +251,16 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
         chunksReceived: chunkCount,
         contentReceived: streamedContent.length,
         errorCount,
+        wasExistingPage: receivedExistingPage,
       });
       
-      // Still finalize the streamed content even on error - content was already displayed
-      // Extract references from the streamed text since we may not have received the 'complete' event
-      const extractedRefs = extractReferencesFromText(streamedContent);
-      finalizeStreaming(streamedContent, extractedRefs);
+      // Only finalize if we were streaming (not for existing pages which are already rendered)
+      if (!receivedExistingPage) {
+        // Still finalize the streamed content even on error - content was already displayed
+        // Extract references from the streamed text since we may not have received the 'complete' event
+        const extractedRefs = extractReferencesFromText(streamedContent);
+        finalizeStreaming(streamedContent, extractedRefs);
+      }
       reject(new Error('Stream error'));
     });
   });
