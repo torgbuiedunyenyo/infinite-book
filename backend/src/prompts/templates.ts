@@ -109,7 +109,6 @@ export function buildPrompt(context: GenerationContext): string {
   prompt += `<output_requirements>\n`;
   prompt += `- ~200-250 words\n`;
   prompt += `- Include [[references]]\n`;
-  prompt += `- End at a natural break\n`;
   prompt += `- Content only, no meta-commentary\n`;
   prompt += `</output_requirements>`;
 

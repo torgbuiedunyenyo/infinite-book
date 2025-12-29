@@ -11,6 +11,15 @@ let cacheHits = 0;
 let cacheMisses = 0;
 let streamGenerations = 0;
 let nonStreamGenerations = 0;
+let inProgressHits = 0;  // Times we avoided duplicate generation by waiting for in-progress
+
+// Track generations currently in progress to prevent duplicate work
+// Maps "seed::pageNumber" to a Promise that resolves with the generated page
+const generationsInProgress = new Map<string, Promise<Page>>();
+
+function pageKey(seed: string, pageNumber: number): string {
+  return `${seed}::${pageNumber}`;
+}
 
 function extractOpening(content: string): string {
   const words = content.split(/\s+/);
@@ -131,6 +140,7 @@ export async function getOrGeneratePage(
   referrerContext?: ReferrerContext
 ): Promise<GetOrGenerateResult> {
   const genId = ++totalGenerations;
+  const key = pageKey(seed, pageNumber);
   
   log.separator(`PAGE REQUEST #${genId}: "${seed}" p.${pageNumber}`);
   
@@ -160,6 +170,28 @@ export async function getOrGeneratePage(
     return { page: existingPage, isNewDiscovery: false };
   }
   
+  // Check if generation is already in progress (prevents duplicate work)
+  const inProgressPromise = generationsInProgress.get(key);
+  if (inProgressPromise) {
+    inProgressHits++;
+    log.info(`Request #${genId}: GENERATION ALREADY IN PROGRESS - waiting for existing generation`, {
+      seed,
+      pageNumber,
+      key,
+      inProgressHits,
+      inProgressCount: generationsInProgress.size,
+    });
+    
+    // Wait for the in-progress generation to complete
+    const page = await inProgressPromise;
+    log.info(`Request #${genId}: In-progress generation completed, returning result`, {
+      seed,
+      pageNumber,
+      contentLength: page.content.length,
+    });
+    return { page, isNewDiscovery: false };
+  }
+  
   cacheMisses++;
   nonStreamGenerations++;
   
@@ -168,6 +200,36 @@ export async function getOrGeneratePage(
     pageNumber,
     cacheMissRate: `${((cacheMisses / totalGenerations) * 100).toFixed(1)}%`,
   });
+  
+  // Create a promise for this generation and register it
+  const generationPromise = doGeneratePage(genId, seed, pageNumber, referrerContext);
+  generationsInProgress.set(key, generationPromise);
+  
+  log.debug(`Request #${genId}: Registered generation in progress`, {
+    key,
+    inProgressCount: generationsInProgress.size,
+  });
+  
+  try {
+    const page = await generationPromise;
+    return { page, isNewDiscovery: true };
+  } finally {
+    // Always clean up the in-progress registry
+    generationsInProgress.delete(key);
+    log.debug(`Request #${genId}: Removed from in-progress registry`, {
+      key,
+      inProgressCount: generationsInProgress.size,
+    });
+  }
+}
+
+// Internal function that does the actual generation work
+async function doGeneratePage(
+  genId: number,
+  seed: string,
+  pageNumber: number,
+  referrerContext?: ReferrerContext
+): Promise<Page> {
   
   // Fetch neighboring pages for context
   log.debug(`Request #${genId}: Fetching neighbor pages for continuity`);
@@ -252,7 +314,7 @@ export async function getOrGeneratePage(
     references: savedPage.references.map(r => r.text),
   });
   
-  return { page: savedPage, isNewDiscovery: true };
+  return savedPage;
 }
 
 export async function* streamOrGetPage(
@@ -267,6 +329,7 @@ export async function* streamOrGetPage(
   unknown
 > {
   const genId = ++totalGenerations;
+  const key = pageKey(seed, pageNumber);
   
   log.separator(`STREAMING PAGE REQUEST #${genId}: "${seed}" p.${pageNumber}`);
   
@@ -295,6 +358,30 @@ export async function* streamOrGetPage(
     return;
   }
   
+  // Check if generation is already in progress (prevents duplicate work)
+  const inProgressPromise = generationsInProgress.get(key);
+  if (inProgressPromise) {
+    inProgressHits++;
+    log.info(`Stream #${genId}: GENERATION ALREADY IN PROGRESS - waiting for existing generation`, {
+      seed,
+      pageNumber,
+      key,
+      inProgressHits,
+      inProgressCount: generationsInProgress.size,
+    });
+    
+    // Wait for the in-progress generation to complete
+    const page = await inProgressPromise;
+    log.info(`Stream #${genId}: In-progress generation completed, returning as existing`, {
+      seed,
+      pageNumber,
+      contentLength: page.content.length,
+    });
+    // Return the result as if it was an existing page (since it is now)
+    yield { type: 'existing', page };
+    return;
+  }
+  
   cacheMisses++;
   streamGenerations++;
   
@@ -304,108 +391,139 @@ export async function* streamOrGetPage(
     streamGenerations,
     cacheMissRate: `${((cacheMisses / totalGenerations) * 100).toFixed(1)}%`,
   });
-
-  // Fetch neighboring pages for context
-  log.debug(`Stream #${genId}: Fetching neighbor pages for continuity`);
-  const neighbors = await getNeighborPages(seed, pageNumber);
   
-  log.info(`Stream #${genId}: Neighbor context assembled`, {
-    prevPages: neighbors.prev.map(p => ({
-      pageNumber: p.pageNumber,
-      openingPreview: p.opening.slice(0, 50) + '...',
-    })),
-    nextPages: neighbors.next.map(p => ({
-      pageNumber: p.pageNumber,
-      openingPreview: p.opening.slice(0, 50) + '...',
-    })),
+  // For streaming, we need to handle the in-progress tracking differently
+  // We create a deferred promise that we'll resolve when streaming completes
+  let resolveGeneration: (page: Page) => void;
+  let rejectGeneration: (error: Error) => void;
+  const generationPromise = new Promise<Page>((resolve, reject) => {
+    resolveGeneration = resolve;
+    rejectGeneration = reject;
+  });
+  
+  generationsInProgress.set(key, generationPromise);
+  log.debug(`Stream #${genId}: Registered streaming generation in progress`, {
+    key,
+    inProgressCount: generationsInProgress.size,
   });
 
-  // Build generation context
-  const context: GenerationContext = {
-    seed,
-    pageNumber,
-    prevPages: neighbors.prev,
-    nextPages: neighbors.next,
-    // Only include referrer context for page 1 when no neighboring pages exist
-    referrerContext: pageNumber === 1 && neighbors.prev.length === 0 && neighbors.next.length === 0 ? referrerContext : undefined,
-  };
-  
-  log.debug(`Stream #${genId}: Generation context prepared for streaming`, {
-    includesReferrerContext: !!context.referrerContext,
-    contextSummary: {
-      prevPages: context.prevPages.length,
-      nextPages: context.nextPages.length,
-    },
-  });
-
-  // Stream content from LLM
-  log.info(`Stream #${genId}: Starting LLM stream`);
-  const startTime = performance.now();
-  let fullContent = '';
-  let chunkCount = 0;
-  
-  for await (const chunk of streamPageContent(context)) {
-    fullContent += chunk;
-    chunkCount++;
+  try {
+    // Fetch neighboring pages for context
+    log.debug(`Stream #${genId}: Fetching neighbor pages for continuity`);
+    const neighbors = await getNeighborPages(seed, pageNumber);
     
-    // Log every 20th chunk
-    if (chunkCount % 20 === 0) {
-      log.debug(`Stream #${genId}: Streaming progress`, {
-        chunkCount,
-        totalChars: fullContent.length,
-        elapsedTime: `${(performance.now() - startTime).toFixed(2)}ms`,
-      });
+    log.info(`Stream #${genId}: Neighbor context assembled`, {
+      prevPages: neighbors.prev.map(p => ({
+        pageNumber: p.pageNumber,
+        openingPreview: p.opening.slice(0, 50) + '...',
+      })),
+      nextPages: neighbors.next.map(p => ({
+        pageNumber: p.pageNumber,
+        openingPreview: p.opening.slice(0, 50) + '...',
+      })),
+    });
+
+    // Build generation context
+    const context: GenerationContext = {
+      seed,
+      pageNumber,
+      prevPages: neighbors.prev,
+      nextPages: neighbors.next,
+      // Only include referrer context for page 1 when no neighboring pages exist
+      referrerContext: pageNumber === 1 && neighbors.prev.length === 0 && neighbors.next.length === 0 ? referrerContext : undefined,
+    };
+    
+    log.debug(`Stream #${genId}: Generation context prepared for streaming`, {
+      includesReferrerContext: !!context.referrerContext,
+      contextSummary: {
+        prevPages: context.prevPages.length,
+        nextPages: context.nextPages.length,
+      },
+    });
+
+    // Stream content from LLM
+    log.info(`Stream #${genId}: Starting LLM stream`);
+    const startTime = performance.now();
+    let fullContent = '';
+    let chunkCount = 0;
+    
+    for await (const chunk of streamPageContent(context)) {
+      fullContent += chunk;
+      chunkCount++;
+      
+      // Log every 20th chunk
+      if (chunkCount % 20 === 0) {
+        log.debug(`Stream #${genId}: Streaming progress`, {
+          chunkCount,
+          totalChars: fullContent.length,
+          elapsedTime: `${(performance.now() - startTime).toFixed(2)}ms`,
+        });
+      }
+      
+      yield { type: 'chunk', text: chunk };
     }
     
-    yield { type: 'chunk', text: chunk };
+    const streamTime = performance.now() - startTime;
+    
+    log.info(`Stream #${genId}: LLM stream complete`, {
+      streamTime: `${streamTime.toFixed(2)}ms`,
+      totalChunks: chunkCount,
+      contentLength: fullContent.length,
+      wordCount: fullContent.split(/\s+/).length,
+    });
+
+    // Extract metadata
+    log.debug(`Stream #${genId}: Extracting metadata from streamed content`);
+    const opening = extractOpening(fullContent);
+    const closing = extractClosing(fullContent);
+    const references = extractReferences(fullContent);
+
+    // Build page object
+    const newPage: Page = {
+      seed,
+      pageNumber,
+      content: fullContent,
+      opening,
+      closing,
+      references,
+    };
+    
+    log.debug(`Stream #${genId}: Page object constructed from stream`, {
+      contentLength: newPage.content.length,
+      openingLength: newPage.opening.length,
+      closingLength: newPage.closing.length,
+      referencesCount: newPage.references.length,
+    });
+
+    // Save to database
+    log.info(`Stream #${genId}: Saving streamed page to database`);
+    const savedPage = await savePage(newPage);
+    
+    log.info(`Stream #${genId}: NEW PAGE DISCOVERED AND SAVED (via stream)`, {
+      id: savedPage.id,
+      seed: savedPage.seed,
+      pageNumber: savedPage.pageNumber,
+      discoveredAt: savedPage.discoveredAt,
+      totalStreamTime: `${streamTime.toFixed(2)}ms`,
+      references: savedPage.references.map(r => r.text),
+    });
+    
+    // Resolve the promise so any waiters get the result
+    resolveGeneration!(savedPage);
+    
+    yield { type: 'complete', page: savedPage };
+  } catch (error) {
+    // Reject the promise so waiters know about the failure
+    rejectGeneration!(error instanceof Error ? error : new Error(String(error)));
+    throw error;
+  } finally {
+    // Always clean up the in-progress registry
+    generationsInProgress.delete(key);
+    log.debug(`Stream #${genId}: Removed from in-progress registry`, {
+      key,
+      inProgressCount: generationsInProgress.size,
+    });
   }
-  
-  const streamTime = performance.now() - startTime;
-  
-  log.info(`Stream #${genId}: LLM stream complete`, {
-    streamTime: `${streamTime.toFixed(2)}ms`,
-    totalChunks: chunkCount,
-    contentLength: fullContent.length,
-    wordCount: fullContent.split(/\s+/).length,
-  });
-
-  // Extract metadata
-  log.debug(`Stream #${genId}: Extracting metadata from streamed content`);
-  const opening = extractOpening(fullContent);
-  const closing = extractClosing(fullContent);
-  const references = extractReferences(fullContent);
-
-  // Build page object
-  const newPage: Page = {
-    seed,
-    pageNumber,
-    content: fullContent,
-    opening,
-    closing,
-    references,
-  };
-  
-  log.debug(`Stream #${genId}: Page object constructed from stream`, {
-    contentLength: newPage.content.length,
-    openingLength: newPage.opening.length,
-    closingLength: newPage.closing.length,
-    referencesCount: newPage.references.length,
-  });
-
-  // Save to database
-  log.info(`Stream #${genId}: Saving streamed page to database`);
-  const savedPage = await savePage(newPage);
-  
-  log.info(`Stream #${genId}: NEW PAGE DISCOVERED AND SAVED (via stream)`, {
-    id: savedPage.id,
-    seed: savedPage.seed,
-    pageNumber: savedPage.pageNumber,
-    discoveredAt: savedPage.discoveredAt,
-    totalStreamTime: `${streamTime.toFixed(2)}ms`,
-    references: savedPage.references.map(r => r.text),
-  });
-  
-  yield { type: 'complete', page: savedPage };
 }
 
 // Export generation stats for monitoring
@@ -417,5 +535,8 @@ export function getGeneratorStats() {
     cacheHitRate: totalGenerations > 0 ? `${((cacheHits / totalGenerations) * 100).toFixed(1)}%` : '0%',
     streamGenerations,
     nonStreamGenerations,
+    inProgressHits,
+    currentInProgress: generationsInProgress.size,
+    inProgressKeys: Array.from(generationsInProgress.keys()),
   };
 }
