@@ -5,21 +5,16 @@ World Essence
 
 ## The Nature of Time
 
-Time has three dimensions, just as space does. Time and space are properties of one another—two ways humans perceive a single phenomenon.
+Time and space are properties of one another—two ways humans perceive a single phenomenon. Time has three dimensions, just as space does. Moving through time is like moving through space. There is only one of you, in one place, at any moment. If you travel somewhere in time, you are no longer where you were—just as if you travel somewhere in space. You cannot go back to a place in time to find someone who has died, any more than you can go back to a place in space to find them. They are gone from all of spacetime.
 
-**The three axes:**
-- **Primas**: Primas Major ("past") and Primas Minor ("future"). The familiar axis; most travel occurs here.
-- **Phantas**: Times along this axis feel "adjacent" rather than before or after.
-- **Mystas**: The least explored axis. The edges of known time along Mystas are unmapped and dangerous.
+The three axes are Primas, Phantas, and Mystas. Primas is the familiar one: Primas Major is what we call "the past," Primas Minor is "the future." Most travel happens along Primas. Phantas is less traveled; times along this axis feel "adjacent" rather than before or after. Mystas is the least explored. The edges of known time along Mystas are unmapped, and something dangerous is growing there.
 
-**Core properties:**
-- All times exist simultaneously. The "present" is just where you happen to be, like "here" in space.
-- Causation is omnidirectional. The past shapes the future; the future shapes the past. All times influence one another, with magnitude increasing by proximity. This means things can exist in a time because a later time's demand for them caused them to.
-- Time is self-healing. Disturbances fade rather than amplify, like ripples in water.
-- No body duplication. There is only one of you across all of time. Returning to a time you left doesn't mean meeting yourself—but that time will have continued changing without you.
-- Movement through time ages you regardless of direction.
+All times exist simultaneously. The "present" is just where you happen to be. Causation runs in every direction—the past shapes the future, but the future also shapes the past. All times influence one another, with strength increasing by proximity. This means things can exist in a time because a later time's demand for them caused them to.
 
-**Sensing time:** Humans can perceive time along all axes—a synesthetic sense, processed like vision. With training, one can "peer" in temporal directions and perceive surrounding times. What you sense may differ from what you find when you arrive, since times keep changing. Temporal literacy varies by era. Future people learn it from childhood. Most past people mistake their perceptions for imagination or memory error.
+Time is self-healing. Disturbances fade rather than amplify, like ripples in water.
+
+Moving through time wears down your body regardless of direction, like wheels on a wagon moving forward or backward.
+Humans can perceive time along all axes, though most aren't trained to recognize it. The sense works like vision but isn't literal sight. With training, you can "peer" in temporal directions and perceive surrounding times. What you sense may differ from what you find when you arrive, since times keep changing. Future people learn this from childhood. Most past people mistake their perceptions for imagination.
 
 ## Technology
 
@@ -35,7 +30,7 @@ The future is wealthier than the past. Resources depleted in the future are extr
 
 Past eras popular with tourists transform around that tourism. The Nazi Blitz in London is now a managed spectacle—the bombings still happen but are controlled, the danger real enough to thrill but safe enough to sell, the locals building their economy around visitors. When the sirens sound, everyone knows what to do.
 
-In 2025 Oakland, shops sell clef, a substance popular with future tourists. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors.
+One small example: In 2025 Oakland, shops sell clef, a substance popular with future tourists. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors.
 
 Travel from past to future requires documentation and sponsorship; visas have strict return dates. An underground exists for those without papers—forgers, fixers, guides who know unmonitored routes. Future people and past people speak the same language but with a century of drift; communication involves constant small confusions. Relationships between people of different eras attract attention and assumptions.
 
