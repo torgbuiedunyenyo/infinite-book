@@ -18,11 +18,13 @@ log.debug('Marked configured', {
 const contentEl = document.getElementById('content')!;
 const pageNumberEl = document.getElementById('page-number')!;
 const navLeftEl = document.getElementById('nav-left')!;
+const loadingIndicatorEl = document.getElementById('loading-indicator')!;
 
 log.debug('DOM elements captured', {
   contentEl: !!contentEl,
   pageNumberEl: !!pageNumberEl,
   navLeftEl: !!navLeftEl,
+  loadingIndicatorEl: !!loadingIndicatorEl,
 });
 
 let currentReferences: Reference[] = [];
@@ -48,6 +50,16 @@ export function updateNavArrows(pageNumber: number): void {
   }
 }
 
+export function showLoadingIndicator(): void {
+  log.debug('Showing loading indicator');
+  loadingIndicatorEl.classList.add('visible');
+}
+
+export function hideLoadingIndicator(): void {
+  log.debug('Hiding loading indicator');
+  loadingIndicatorEl.classList.remove('visible');
+}
+
 export function clearContent(): void {
   log.debug('Clearing content', {
     previousContentLength: contentEl.innerHTML.length,
@@ -56,6 +68,7 @@ export function clearContent(): void {
   
   contentEl.innerHTML = '';
   currentReferences = [];
+  showLoadingIndicator();
 }
 
 export function setLoading(loading: boolean): void {
@@ -72,6 +85,7 @@ export function renderContent(content: string, references: Reference[]): void {
     totalRenders,
   });
   
+  hideLoadingIndicator();
   currentReferences = references;
   
   const startTime = performance.now();
@@ -95,6 +109,12 @@ export function renderContent(content: string, references: Reference[]): void {
 
 export function appendChunk(fullText: string): void {
   totalChunks++;
+  
+  // Hide loading indicator on first chunk
+  if (totalChunks === 1) {
+    hideLoadingIndicator();
+    log.debug('First chunk received, hiding loading indicator');
+  }
   
   // Remove existing cursor
   const cursor = contentEl.querySelector('.streaming-cursor');
@@ -129,6 +149,9 @@ export function finalizeStreaming(fullText: string, references: Reference[]): vo
     totalFinalizations,
     totalChunksReceived: totalChunks,
   });
+  
+  // Ensure loading indicator is hidden (safety check for edge cases)
+  hideLoadingIndicator();
   
   // Remove cursor
   const cursor = contentEl.querySelector('.streaming-cursor');
