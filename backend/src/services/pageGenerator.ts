@@ -1,5 +1,5 @@
 import { Page, Reference, GenerationContext, GetOrGenerateResult, BookSynopsis, SequentialAccessError, InvalidSeedAccessError } from '../types';
-import { getPage, getNeighborPages, savePage, getBookSynopsis, getPage1Opening } from './database';
+import { getPage, getPreviousPages, savePage, getBookSynopsis, getPage1Opening } from './database';
 import { generatePageContent, streamPageContent } from './llm';
 import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
 import { scheduleSynopsisGeneration } from './bookService';
@@ -305,16 +305,12 @@ async function doGeneratePage(
   referrerContext?: ReferrerContext
 ): Promise<Page> {
   
-  // Fetch neighboring pages for context
-  log.debug(`Request #${genId}: Fetching neighbor pages for continuity`);
-  const neighbors = await getNeighborPages(seed, pageNumber);
+  // Fetch previous pages for context
+  log.debug(`Request #${genId}: Fetching previous pages for continuity`);
+  const prevPages = await getPreviousPages(seed, pageNumber);
   
-  log.info(`Request #${genId}: Neighbor context assembled`, {
-    prevPages: neighbors.prev.map(p => ({
-      pageNumber: p.pageNumber,
-      contentLength: p.content.length,
-    })),
-    nextPages: neighbors.next.map(p => ({
+  log.info(`Request #${genId}: Previous pages context assembled`, {
+    prevPages: prevPages.map(p => ({
       pageNumber: p.pageNumber,
       contentLength: p.content.length,
     })),
@@ -322,8 +318,8 @@ async function doGeneratePage(
 
   // Fetch relevant canonical facts for world consistency
   log.debug(`Request #${genId}: Fetching relevant canonical facts`);
-  const existingContent = neighbors.prev.length > 0 
-    ? neighbors.prev.map(p => p.content).join(' ')
+  const existingContent = prevPages.length > 0 
+    ? prevPages.map(p => p.content).join(' ')
     : undefined;
   const canonicalFacts = await getRelevantFactsForGeneration(seed, existingContent);
   
@@ -354,20 +350,18 @@ async function doGeneratePage(
   const context: GenerationContext = {
     seed,
     pageNumber,
-    prevPages: neighbors.prev,
-    nextPages: neighbors.next,
+    prevPages,
     canonicalFacts,
     bookSynopsis: bookSynopsis || undefined,
     page1Opening: page1Opening || undefined,
-    // Only include referrer context for page 1 when no neighboring pages exist
-    referrerContext: pageNumber === 1 && neighbors.prev.length === 0 && neighbors.next.length === 0 ? referrerContext : undefined,
+    // Only include referrer context for page 1 when no previous pages exist
+    referrerContext: pageNumber === 1 && prevPages.length === 0 ? referrerContext : undefined,
   };
   
   log.debug(`Request #${genId}: Generation context prepared`, {
     seed: context.seed,
     pageNumber: context.pageNumber,
     prevPagesCount: context.prevPages.length,
-    nextPagesCount: context.nextPages.length,
     canonicalFactsCount: context.canonicalFacts?.length || 0,
     hasBookSynopsis: !!context.bookSynopsis,
     hasPage1Opening: !!context.page1Opening,
@@ -528,16 +522,12 @@ export async function* streamOrGetPage(
   });
 
   try {
-    // Fetch neighboring pages for context
-    log.debug(`Stream #${genId}: Fetching neighbor pages for continuity`);
-    const neighbors = await getNeighborPages(seed, pageNumber);
+    // Fetch previous pages for context
+    log.debug(`Stream #${genId}: Fetching previous pages for continuity`);
+    const prevPages = await getPreviousPages(seed, pageNumber);
     
-    log.info(`Stream #${genId}: Neighbor context assembled`, {
-      prevPages: neighbors.prev.map(p => ({
-        pageNumber: p.pageNumber,
-        openingPreview: p.opening.slice(0, 50) + '...',
-      })),
-      nextPages: neighbors.next.map(p => ({
+    log.info(`Stream #${genId}: Previous pages context assembled`, {
+      prevPages: prevPages.map(p => ({
         pageNumber: p.pageNumber,
         openingPreview: p.opening.slice(0, 50) + '...',
       })),
@@ -545,8 +535,8 @@ export async function* streamOrGetPage(
 
     // Fetch relevant canonical facts for world consistency
     log.debug(`Stream #${genId}: Fetching relevant canonical facts`);
-    const existingContent = neighbors.prev.length > 0 
-      ? neighbors.prev.map(p => p.content).join(' ')
+    const existingContent = prevPages.length > 0 
+      ? prevPages.map(p => p.content).join(' ')
       : undefined;
     const canonicalFacts = await getRelevantFactsForGeneration(seed, existingContent);
     
@@ -577,13 +567,12 @@ export async function* streamOrGetPage(
     const context: GenerationContext = {
       seed,
       pageNumber,
-      prevPages: neighbors.prev,
-      nextPages: neighbors.next,
+      prevPages,
       canonicalFacts,
       bookSynopsis: bookSynopsis || undefined,
       page1Opening: page1Opening || undefined,
-      // Only include referrer context for page 1 when no neighboring pages exist
-      referrerContext: pageNumber === 1 && neighbors.prev.length === 0 && neighbors.next.length === 0 ? referrerContext : undefined,
+      // Only include referrer context for page 1 when no previous pages exist
+      referrerContext: pageNumber === 1 && prevPages.length === 0 ? referrerContext : undefined,
     };
     
     log.debug(`Stream #${genId}: Generation context prepared for streaming`, {
@@ -592,7 +581,6 @@ export async function* streamOrGetPage(
       hasPage1Opening: !!context.page1Opening,
       contextSummary: {
         prevPages: context.prevPages.length,
-        nextPages: context.nextPages.length,
         canonicalFacts: context.canonicalFacts?.length || 0,
       },
     });

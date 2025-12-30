@@ -37,7 +37,6 @@ export interface GenerationContext {
   seed: string;
   pageNumber: number;
   prevPages: Page[];
-  nextPages: Page[];
   referrerContext?: {
     seed: string;
     pageNumber: number;
@@ -46,11 +45,6 @@ export interface GenerationContext {
   canonicalFacts?: CanonicalFact[];  // Relevant facts for consistency
   bookSynopsis?: BookSynopsis;       // Book-level context for narrative coherence
   page1Opening?: string;             // Opening of page 1 for anchoring
-}
-
-export interface NeighborPages {
-  prev: Page[];
-  next: Page[];
 }
 
 export interface GetOrGenerateResult {

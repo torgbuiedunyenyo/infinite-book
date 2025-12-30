@@ -120,9 +120,9 @@ This means the library's expansion is driven entirely by the reading experience.
 
 The library maintains consistency through multiple mechanisms:
 
-**Bidirectional Page Consistency**: Pages must flow naturally from their neighbors. If page 4 exists, page 5 continues from it seamlessly.
+**Sequential Page Continuity**: When generating page N, the system retrieves up to 2 previous pages (N-2 and N-1) to provide context. The new page continues naturally from where the previous page left off.
 
-**Canonical Facts Database**: Established details about characters, places, events, and concepts are extracted and stored. When new pages are created, relevant facts are retrieved to ensure world consistency.
+**Canonical Facts Database**: Established details about characters, places, events, and concepts are extracted and stored. When new pages are created, up to 12 relevant facts are retrieved via full-text search to ensure world consistency.
 
 **Book Synopses**: When page 1 of any book is generated, the system extracts a synopsis capturing:
 - What the book is about (2-3 sentences)
@@ -137,37 +137,22 @@ This synopsis is provided as context for all subsequent pages in that book, ensu
 
 Entry points to the library—doorways into The Shape of Time. These are the only seeds that can be accessed directly; all other books must be discovered by following [[references]].
 
-**Character-focused:**
-- Jay's first sale
-- The day Tan arrived
-- What her father knew
-- The fixer in Meridian
-- The cartographer's apprentice
+The canonical seeds are time-related idioms, each opening into the world of The Shape of Time:
 
-**Place-focused:**
-- Oakland, 2025
-- The shop on the corner
-- Meridian Station
-- The Blitz tourism zone
-- The edges of known time
-
-**Document-focused:**
-- Temporal immigration form 27-B
-- Company internal memo RE: edge containment
-- Underground cartographer's notes
-- A tourist's guide to the authentic past
-
-**Event-focused:**
-- The day she disappeared
-- His arrival in the future
-- What happened at the edges
-- The first extraction
-
-**Concept-focused:**
-- The nature of clef
-- What the tourists don't see
-- How to read the currents
-- The self-healing property
+- Out of Time
+- On Time
+- Ahead of Time
+- For The Time Being
+- From Time to Time
+- In No Time
+- Saving Time
+- Time Wasted
+- Time After Time
+- About Time
+- Killing Time
+- Time Flies
+- Time Will Tell
+- Buying Time
 
 ---
 
@@ -208,8 +193,8 @@ When a page is requested that doesn't exist:
 1. **Access control validation:**
    - For page N > 1: verify page N-1 exists
    - For page 1 of non-canonical seeds: verify referrer contains [[this seed]] as a reference
-2. Check for up to 2 neighboring pages in each direction
-3. Retrieve relevant canonical facts for world consistency
+2. Retrieve up to 2 previous pages for continuity context
+3. Retrieve relevant canonical facts for world consistency (up to 12 via full-text search)
 4. For pages > 1: retrieve book synopsis and page 1 opening for narrative anchoring
 5. Build a structured prompt with world essence, context, and guidelines
 6. Generate via Claude Opus 4.5 with extended thinking

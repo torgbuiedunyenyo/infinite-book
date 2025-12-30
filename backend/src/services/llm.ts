@@ -40,10 +40,8 @@ export async function generatePageContent(context: GenerationContext): Promise<s
     seed: context.seed,
     pageNumber: context.pageNumber,
     hasPrevPages: context.prevPages.length > 0,
-    hasNextPages: context.nextPages.length > 0,
     hasReferrerContext: !!context.referrerContext,
-    prevPageNumbers: context.prevPages.map(p => p.pageNumber),
-    nextPageNumbers: context.nextPages.map(p => p.pageNumber),
+    prevPageNumbers: context.prevPages.map((p: { pageNumber: number }) => p.pageNumber),
   });
   
   log.debug(`Request #${requestId}: Prompt details`, {
@@ -150,10 +148,8 @@ export async function* streamPageContent(
     seed: context.seed,
     pageNumber: context.pageNumber,
     hasPrevPages: context.prevPages.length > 0,
-    hasNextPages: context.nextPages.length > 0,
     hasReferrerContext: !!context.referrerContext,
-    prevPageNumbers: context.prevPages.map(p => p.pageNumber),
-    nextPageNumbers: context.nextPages.map(p => p.pageNumber),
+    prevPageNumbers: context.prevPages.map((p: { pageNumber: number }) => p.pageNumber),
     referrerSeed: context.referrerContext?.seed,
   });
   

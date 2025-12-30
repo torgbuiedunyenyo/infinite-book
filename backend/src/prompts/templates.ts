@@ -229,7 +229,7 @@ Generate page content for this system. Write fiction that lives inside this worl
 
 export function buildPrompt(context: GenerationContext): string {
   const { canonicalFacts, bookSynopsis, page1Opening } = context;
-  const { seed, pageNumber, prevPages, nextPages, referrerContext } = context;
+  const { seed, pageNumber, prevPages, referrerContext } = context;
 
   let prompt = '';
 
@@ -261,18 +261,11 @@ export function buildPrompt(context: GenerationContext): string {
     prompt += `</established_facts>\n\n`;
   }
 
-  // EXISTING PAGES: Provide neighbor pages for continuity
-  const hasPrevPages = prevPages.length > 0;
-  const hasNextPages = nextPages.length > 0;
-
-  if (hasPrevPages || hasNextPages) {
+  // EXISTING PAGES: Provide previous pages for continuity
+  if (prevPages.length > 0) {
     prompt += `<existing_pages>\n`;
     
     for (const page of prevPages) {
-      prompt += `<page number="${page.pageNumber}">\n${page.content}\n</page>\n\n`;
-    }
-    
-    for (const page of nextPages) {
       prompt += `<page number="${page.pageNumber}">\n${page.content}\n</page>\n\n`;
     }
     
@@ -293,17 +286,10 @@ export function buildPrompt(context: GenerationContext): string {
   // INSTRUCTIONS: Context-aware generation guidance
   prompt += `<instructions>\n`;
   
-  if (hasPrevPages && hasNextPages) {
-    const immediatePrev = prevPages[prevPages.length - 1];
-    const immediateNext = nextPages[0];
-    prompt += `Generate page ${pageNumber}, flowing naturally from page ${immediatePrev.pageNumber} into page ${immediateNext.pageNumber}.\n`;
-  } else if (hasPrevPages) {
+  if (prevPages.length > 0) {
     const immediatePrev = prevPages[prevPages.length - 1];
     prompt += `Generate page ${pageNumber}, continuing from page ${immediatePrev.pageNumber}.\n`;
     prompt += `Maintain the voice, perspective, and momentum established.\n`;
-  } else if (hasNextPages) {
-    const immediateNext = nextPages[0];
-    prompt += `Generate page ${pageNumber}, which must lead into page ${immediateNext.pageNumber}.\n`;
   } else if (pageNumber === 1 && referrerContext) {
     prompt += `The reader arrived by clicking [[${seed}]] in another book.\n`;
     prompt += `This is PAGE 1 of a new book. The referrer provides context for what "${seed}" means in this world.\n`;
@@ -313,9 +299,6 @@ export function buildPrompt(context: GenerationContext): string {
     prompt += `This is page 1 of "${seed}". No other pages exist yet.\n`;
     prompt += `Establish voice, perspective, and situation. Begin mid-action or mid-thought.\n`;
     prompt += `The seed suggests what this book is about—interpret it within the world.\n`;
-  } else {
-    prompt += `Generate page ${pageNumber}. No neighboring pages exist to constrain you.\n`;
-    prompt += `Stay consistent with what the seed "${seed}" implies about this book.\n`;
   }
 
   // Page-position-aware narrative guidance

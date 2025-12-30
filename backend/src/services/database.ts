@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Page, Reference, NeighborPages, CanonicalFact, BookSynopsis } from '../types';
+import { Page, Reference, CanonicalFact, BookSynopsis } from '../types';
 import { dbLogger } from './logger';
 
 const log = dbLogger;
@@ -139,56 +139,41 @@ export async function getPage(seed: string, pageNumber: number): Promise<Page | 
   return mapRowToPage(result.rows[0]);
 }
 
-export async function getNeighborPages(seed: string, pageNumber: number): Promise<NeighborPages> {
-  log.info('getNeighborPages called', { seed, pageNumber });
+export async function getPreviousPages(seed: string, pageNumber: number): Promise<Page[]> {
+  log.info('getPreviousPages called', { seed, pageNumber });
   
-  // Fetch up to 2 previous pages (N-2, N-1) and up to 2 next pages (N+1, N+2)
+  // Fetch up to 2 previous pages (N-2, N-1)
   const prevPageNumbers = [pageNumber - 2, pageNumber - 1].filter(n => n >= 1);
-  const nextPageNumbers = [pageNumber + 1, pageNumber + 2];
   
-  log.debug('Neighbor page ranges', {
+  if (prevPageNumbers.length === 0) {
+    log.debug('No previous pages to fetch (page 1)', { seed, pageNumber });
+    return [];
+  }
+  
+  log.debug('Previous page numbers to fetch', {
     seed,
     targetPage: pageNumber,
     prevPageNumbers,
-    nextPageNumbers,
   });
 
-  const prevPromise = prevPageNumbers.length > 0
-    ? executeQuery<any>(
-        'getNeighborPages:prev',
-        `SELECT id, seed, page_number, content, opening, closing, "references", discovered_at
-         FROM pages 
-         WHERE seed = $1 AND page_number = ANY($2)
-         ORDER BY page_number ASC`,
-        [seed, prevPageNumbers]
-      )
-    : Promise.resolve({ rows: [], rowCount: 0, duration: 0 });
-
-  const nextPromise = executeQuery<any>(
-    'getNeighborPages:next',
+  const result = await executeQuery<any>(
+    'getPreviousPages',
     `SELECT id, seed, page_number, content, opening, closing, "references", discovered_at
      FROM pages 
      WHERE seed = $1 AND page_number = ANY($2)
      ORDER BY page_number ASC`,
-    [seed, nextPageNumbers]
+    [seed, prevPageNumbers]
   );
 
-  const [prevResult, nextResult] = await Promise.all([prevPromise, nextPromise]);
-
-  const neighbors = {
-    prev: prevResult.rows.map(mapRowToPage),
-    next: nextResult.rows.map(mapRowToPage),
-  };
+  const pages = result.rows.map(mapRowToPage);
   
-  log.info('Neighbor pages retrieved', {
+  log.info('Previous pages retrieved', {
     seed,
     pageNumber,
-    prevPagesFound: neighbors.prev.map(p => p.pageNumber),
-    nextPagesFound: neighbors.next.map(p => p.pageNumber),
-    totalNeighbors: neighbors.prev.length + neighbors.next.length,
+    prevPagesFound: pages.map(p => p.pageNumber),
   });
 
-  return neighbors;
+  return pages;
 }
 
 export async function savePage(page: Page): Promise<Page> {
