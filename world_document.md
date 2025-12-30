@@ -42,14 +42,6 @@ The three axes of time are:
 
 **Movement through time ages you regardless of direction.** Whether you travel toward Primas Major or Primas Minor, forward or backward, your body wears down. There is no returning to youth by going "back" in time.
 
-### Sensing Time
-
-Humans can perceive time along all axes, though most are not trained to recognize this. The experience is a form of synesthesia—not literal vision, but processed by the brain in similar ways. With eyes closed, one can "peer" in temporal directions and perceive images of surrounding times.
-
-This sense has limitations, like all senses. We perceive only a narrow band of time, as we see only a narrow band of light. We perceive nearby times more clearly than distant ones. And because times continue to change, what we sense from a distance may differ from what we find when we arrive—just as a city seen from a hilltop looks different when you're walking its streets.
-
-Temporal literacy—the ability to sense, interpret, and navigate time—varies enormously by era and by individual. People from the future are raised with this education. People from the past are largely temporally illiterate, mistaking their perceptions for imagination or memory error.
-
 ------
 
 ## Part Two: Time Travel Technology
@@ -198,7 +190,7 @@ Jay is a young man living in Oakland in 2025. He works at a shop (a liquor store
 
 Jay is not formally educated in temporal mechanics, but he has the street smarts of someone who's grown up in an era saturated with future influence. He's used to wealthy strangers appearing and disappearing, used to products and trends that don't quite make sense, used to navigating a world that doesn't fully belong to his own time.
 
-He is temporally illiterate in the formal sense—he can't read temporal maps, doesn't know how to calibrate a PRMTT, can't consciously sense time the way trained future people can. But he has instincts. He notices things. He's survived by paying attention to what doesn't add up.
+He is temporally illiterate in the formal sense—he can't read temporal maps, doesn't know how to calibrate a PRMTT. But he has instincts. He notices things. He's survived by paying attention to what doesn't add up.
 
 When Tan enters his shop and struggles with payment, he recognizes her as a future person immediately—not from any single detail, but from the aggregate of small wrong notes. Her confusion with the phone. Her clothes that are slightly off. Her assumption that things should work differently. He gives her the clef for free partly out of kindness, partly out of curiosity, partly because he's drawn to her in a way he doesn't fully understand.
 
@@ -206,7 +198,7 @@ Jay is not naive about the power imbalance between them. He knows how relationsh
 
 ### Tan
 
-Tan is a young woman from the future, somewhere around 2150. Her father is a powerful executive at the leading PRMTT company. She has grown up wealthy, privileged, and educated in temporal mechanics. She can sense time naturally, navigate PRMTTs intuitively, and read temporal maps fluently.
+Tan is a young woman from the future, somewhere around 2150. Her father is a powerful executive at the leading PRMTT company. She has grown up wealthy, privileged, and educated in temporal mechanics. She can navigate PRMTTs intuitively, and read temporal maps fluently.
 
 She comes to 2025 Oakland as a tourist, initially. It's a popular destination—gritty, authentic, a taste of the "real" past before it became too transformed. She's been to other eras, other places. She's comfortable traveling through time in a way Jay will never be.
 
@@ -250,11 +242,11 @@ Jay falls in love with Tan. Tan falls in love with Jay, or something like it. Bo
 
 Tan wants Jay to see her world. Her father arranges documentation. They travel to the future together.
 
-Jay's experience of the future is disorienting. He's temporally illiterate in a place where temporal fluency is assumed. He can't sense time the way natives do. He gets lost easily—not just spatially, but temporally. He depends on Tan to navigate.
+Jay's experience of the future is disorienting. He gets lost easily—not just spatially, but temporally. He depends on Tan to navigate.
 
 The social dynamics are worse. Everyone assumes he's with Tan for citizenship, money, status. He's treated as a curiosity at best, a predator at worst. Tan's friends are polite but condescending. Her family is cold.
 
-Jay tries to adapt. He studies temporal mechanics, attempts to develop his time-sense, looks for work that doesn't require skills he doesn't have. Progress is slow and humiliating.
+Jay tries to adapt. He studies temporal mechanics, looks for work that doesn't require skills he doesn't have. Progress is slow and humiliating.
 
 ### Part Three: The Disappearance
 
@@ -281,7 +273,7 @@ His investigation takes him through multiple eras:
 - To future times he can access through underground channels
 - Eventually, toward the Mystas edges where rumors suggest Tan may have gone
 
-Along the way, he develops his temporal senses out of necessity. He learns to navigate by instinct when maps fail. He becomes something he never expected: a competent time traveler, self-taught under pressure.
+Along the way, he learns to navigate by instinct when maps fail. He becomes something he never expected: a competent time traveler, self-taught under pressure.
 
 ### Part Five: The Truth
 
@@ -305,7 +297,7 @@ He decides to forgive her. Not because what she did was acceptable, but because 
 
 They try, briefly, to continue. But Tan doesn't want to do the work. The relationship requires her to see Jay fully, to account for the power between them, to change how she moves through the world. She's not willing. It's easier to let him go.
 
-Jay returns to Oakland, to 2025, to his shop. The time has changed in his absence—it's not quite the place he left—but it's still recognizable. He's different now. He can sense time in ways he couldn't before. He understands things about the structure of the world that most people in his era don't know.
+Jay returns to Oakland, to 2025, to his shop. The time has changed in his absence—it's not quite the place he left—but it's still recognizable. He's different now. He understands things about the structure of the world that most people in his era don't know.
 
 He goes back to work. He sells clef to future tourists. He watches them come and go, knowing what he knows, carrying what he's learned. The dark thing is still growing at the edges. The exploitation continues. Nothing has been fixed.
 

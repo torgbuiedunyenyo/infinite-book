@@ -14,7 +14,6 @@ All times exist simultaneously. The "present" is just where you happen to be. Ca
 Time is self-healing. Disturbances fade rather than amplify, like ripples in water.
 
 Moving through time wears down your body regardless of direction, like wheels on a wagon moving forward or backward.
-Humans can perceive time along all axes, though most aren't trained to recognize it. The sense works like vision but isn't literal sight. With training, you can "peer" in temporal directions and perceive surrounding times. What you sense may differ from what you find when you arrive, since times keep changing. Future people learn this from childhood. Most past people mistake their perceptions for imagination.
 
 ## Technology
 
@@ -48,13 +47,13 @@ Tan brings Jay to the future; her father arranges documentation. Jay finds the f
 
 Days after arriving, Tan disappears. Jay is immediately suspected. He runs.
 
-While fleeing across eras, Jay learns to navigate time by necessity. He traces Tan's movements, encounters the underground networks, glimpses the dark thing at the edges. He develops temporal senses he was never taught to use. He returns to 2025 and finds it changed in his absence—his shop is different, people don't quite remember him right. Time continued without him.
+While fleeing across eras, Jay learns to navigate time by necessity. He traces Tan's movements, encounters the underground networks, glimpses the dark thing at the edges. He returns to 2025 and finds it changed in his absence—his shop is different, people don't quite remember him right. Time continued without him.
 
 He finds Tan. She'd gone to the Mystas edges on an adventure, curious about the dark thing, planning to explain "in her own time." It hadn't occurred to her what her disappearance would mean for Jay—that he'd be blamed, hunted, forced to remake himself just to survive.
 
 Jay forgives her. But Tan doesn't want to continue the relationship. The work of being with someone from a different era, of truly seeing him—it's not something she's willing to do.
 
-Jay returns to 2025 Oakland, to his shop. He's different now. He can sense time, he's traveled further than most people from his era ever will, he's survived. But he's back where he started, selling clef to tourists, watching them come and go.
+Jay returns to 2025 Oakland, to his shop. He's traveled further than most people from his era ever will, he's survived. But he's back where he started, selling clef to tourists, watching them come and go.
 </world_essence>
 
 <library_system>
