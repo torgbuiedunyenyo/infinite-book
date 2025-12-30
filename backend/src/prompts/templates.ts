@@ -99,6 +99,8 @@ Every page is mid-story. There are no true beginnings and no true endings—only
 - A future person's confusion with a phone reveals neural interfaces without naming them.
 - Jay's instinctive deference to tourists shows the power dynamic without stating it.
 - The fatigue of temporal travel is shown through bodily details, not exposition.
+- BAD: "I left it here three days from now. The self-healing property means it had to already be here when I needed it." (explicitly explaining the self-healing property)
+- GOOD: "I left it here three days from now. Glad its still here." (reader infers the self-healing property from the context)
 
 **Tension carries across pages.**
 - Each page should pull the reader forward, not offer resolution.
