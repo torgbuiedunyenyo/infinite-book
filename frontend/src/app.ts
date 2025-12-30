@@ -449,6 +449,9 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
   updateNavArrows(page);
   setLoading(true);
   
+  // Scroll to top of page when navigating
+  window.scrollTo(0, 0);
+  
   const startTime = performance.now();
   
   try {
@@ -602,6 +605,7 @@ function handleKeyDown(e: KeyboardEvent): void {
       setPageNumber(prev.page);
       updateNavArrows(prev.page);
       setLoading(true);
+      window.scrollTo(0, 0);
       
       fetchPageStreaming(prev.seed, prev.page).then(() => {
         // Prefetch adjacent pages

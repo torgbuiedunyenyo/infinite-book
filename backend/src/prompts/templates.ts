@@ -130,7 +130,7 @@ There is an ongoing power dynamic between the future and the past. This manifest
 
 **Labor and cultural arbitrage:** Services and goods are cheaper in the past. Future companies outsource operations to past eras. Art, music, and cuisine are taken from the past and sold in the future, often without compensation.
 
-In 2025 Oakland, shops sell clef, a substance popular with future tourists. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors. Medical services and infrastructure have been upgraded in tourist areas, creating stark inequalities between zones that attract visitors and those that don't.
+In 2025 Oakland, shops sell clef, a mildly relaxing drink popular with future tourists. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors. Medical services and infrastructure have been upgraded in tourist areas, creating stark inequalities between zones that attract visitors and those that don't.
 
 **Preservation zones** exist where future influence is restricted—eras kept artificially "pristine" by limiting economic development. These are essentially human zoos, residents kept in relative poverty to maintain the aesthetic tourists want.
 
