@@ -214,10 +214,10 @@ Every page is mid-story. There are no true beginnings and no true endings—only
 <references>
 References ([[double brackets]]) must point to things that exist within this world. These are just a few examples:
 
-**Characters:** [[Jay]], [[Tan]], [[her father]], [[the cartographer]], [[the fixer in Meridian]]
-**Places:** [[the shop]], [[Meridian Station]], [[the Blitz tourism zone]], [[Oakland in the rain]], [[the edges]]
+**Characters:** [[Jay]]
+**Places:** [[the shop]], [[the edges]]
 **Concepts:** [[clef]], [[the underground]]
-**Events:** [[the day she disappeared]], [[what happened at the edges]], [[the visa interview]]
+**Events:** [[the day she disappeared]], [[what happened at the edges]]
 **Documents:** [[company internal memo]], [[cartographer's notes]]
 
 References should feel natural within the prose—things characters would actually mention, documents that would actually exist, places they'd actually go. Again, the above are just examples.
