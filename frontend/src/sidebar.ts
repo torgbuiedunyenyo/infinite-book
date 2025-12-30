@@ -255,9 +255,6 @@ function createSidebarElements(): void {
     </div>
     <div class="sidebar-divider"></div>
     <div id="sidebar-books-list" class="sidebar-books-list"></div>
-    <div class="sidebar-footer">
-      <span id="sidebar-stats"></span>
-    </div>
   `;
   
   // Add to DOM
@@ -371,18 +368,5 @@ function escapeHtml(text: string): string {
  */
 function escapeAttr(text: string): string {
   return text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-/**
- * Refresh the books list (call after navigating to a new book)
- */
-export async function refreshBooks(): Promise<void> {
-  if (isOpen) {
-    books = [];
-    await fetchBooks();
-  } else {
-    // Clear cache so next open will refetch
-    books = [];
-  }
 }
 

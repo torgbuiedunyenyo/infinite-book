@@ -400,7 +400,6 @@ async function doGeneratePage(
     opening,
     closing,
     references,
-    citations: [],
   };
   
   log.debug(`Request #${genId}: Page object constructed`, {
@@ -643,7 +642,6 @@ export async function* streamOrGetPage(
       opening,
       closing,
       references,
-      citations: [],
     };
     
     log.debug(`Stream #${genId}: Page object constructed from stream`, {

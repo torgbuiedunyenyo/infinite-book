@@ -291,15 +291,3 @@ function attachReferenceHandlers(): void {
   });
 }
 
-// Export renderer stats
-export function getRendererStats() {
-  return {
-    totalRenders,
-    totalChunks,
-    totalFinalizations,
-    referenceClickCount,
-    currentReferencesCount: currentReferences.length,
-    contentLength: contentEl.innerHTML.length,
-    visibleReferences: contentEl.querySelectorAll('.reference').length,
-  };
-}

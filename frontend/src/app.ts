@@ -16,7 +16,7 @@ import {
   onReferenceClick,
   updateNavArrows,
 } from './renderer';
-import { initSidebar, onBookSelect, refreshBooks, isSidebarOpen } from './sidebar';
+import { initSidebar, onBookSelect, isSidebarOpen } from './sidebar';
 import { PageData, Reference } from './types';
 import { appLogger, apiLogger, cacheLogger } from './logger';
 
@@ -461,7 +461,7 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
       duration: `${duration.toFixed(2)}ms`,
     });
     
-    // Prefetch adjacent pages (only existing ones, don't trigger generation)
+    // Prefetch adjacent pages
     log.debug('Starting prefetch of adjacent pages', {
       nextPage: page + 1,
       prevPage: page > 1 ? page - 1 : 'N/A',

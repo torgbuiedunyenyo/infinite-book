@@ -6,22 +6,12 @@ export interface Page {
   opening: string;
   closing: string;
   references: Reference[];
-  citations: Citation[];  // Kept for backwards compatibility with existing database records
   discoveredAt?: Date;
 }
 
 export interface Reference {
   text: string;
   seed: string;
-}
-
-export interface Citation {
-  id: number;
-  url: string;
-  title: string;
-  snippet: string;
-  publishedDate?: string;
-  author?: string;
 }
 
 export interface CanonicalFact {

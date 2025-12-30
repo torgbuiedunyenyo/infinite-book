@@ -247,7 +247,6 @@ router.get('/page', async (req: Request, res: Response) => {
       isNewDiscovery,
       contentLength: page.content.length,
       referencesCount: page.references.length,
-      citationsCount: page.citations.length,
       totalDuration: `${totalDuration.toFixed(2)}ms`,
     });
 
@@ -256,7 +255,6 @@ router.get('/page', async (req: Request, res: Response) => {
       pageNumber: page.pageNumber,
       content: page.content,
       references: page.references,
-      citations: page.citations,
       discoveredAt: page.discoveredAt?.toISOString(),
       isNewDiscovery,
     });
@@ -337,17 +335,19 @@ router.get('/page/stream', async (req: Request, res: Response) => {
       return;
     }
 
+    // Set SSE headers BEFORE any async operations that could throw
+    // This ensures error responses are properly formatted as SSE events
+    log.info('Setting up SSE response headers');
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
     // Parse referrer context if provided (for page 1 reached via reference click)
     log.debug('Checking for referrer context in stream request');
     const referrerContext = await parseReferrerContext(req);
     
     // Check if this is a canonical seed (allowed without referrer)
     const isCanonical = isCanonicalSeed(seed);
-
-    log.info('Setting up SSE response headers');
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
     
     // Handle client disconnect
     req.on('close', () => {
@@ -373,7 +373,6 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           seed: event.page.seed,
           pageNumber: event.page.pageNumber,
           contentLength: event.page.content.length,
-          citationsCount: event.page.citations.length,
         });
         
         res.write(`event: existing\n`);
@@ -382,7 +381,6 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           pageNumber: event.page.pageNumber,
           content: event.page.content,
           references: event.page.references,
-          citations: event.page.citations,
           discoveredAt: event.page.discoveredAt?.toISOString(),
           isNewDiscovery: false,
         })}\n\n`);
@@ -407,7 +405,6 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           seed: event.page.seed,
           pageNumber: event.page.pageNumber,
           referencesCount: event.page.references.length,
-          citationsCount: event.page.citations.length,
           totalChunks: chunkCount,
         });
         
@@ -416,7 +413,6 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           seed: event.page.seed,
           pageNumber: event.page.pageNumber,
           references: event.page.references,
-          citations: event.page.citations,
           discoveredAt: event.page.discoveredAt?.toISOString(),
           isNewDiscovery: true,
         })}\n\n`);

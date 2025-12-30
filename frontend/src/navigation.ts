@@ -86,14 +86,6 @@ export function goBack(): Location | null {
   return currentLocation;
 }
 
-export function canGoBack(): boolean {
-  const result = history.length > 0;
-  log.debug('canGoBack check', {
-    result,
-    historyLength: history.length,
-  });
-  return result;
-}
 
 function updateURL(location: Location): void {
   const encodedSeed = encodeURIComponent(location.seed);
@@ -187,16 +179,3 @@ export function setupPopStateHandler(onNavigate: (location: Location) => void): 
   log.debug('Popstate handler registered');
 }
 
-// Export navigation stats
-export function getNavigationStats() {
-  return {
-    historyLength: history.length,
-    hasCurrentLocation: !!currentLocation,
-    currentSeed: currentLocation?.seed,
-    currentPage: currentLocation?.page,
-    totalSetLocations,
-    totalGoBackCalls,
-    totalURLParses,
-    totalPopStateEvents,
-  };
-}

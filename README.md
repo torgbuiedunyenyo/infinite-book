@@ -1,6 +1,6 @@
 # The Infinite Book
 
-A boundless library that contains every book that could ever be written. You navigate it by flipping pages and following references. There is no search, no input field, no generation prompt — only the ancient gestures of reading: turning pages and pursuing citations.
+A boundless library that contains every book that could ever be written. You navigate it by flipping pages and following references. There is no search, no input field, no generation prompt — only the ancient gestures of reading: turning pages and pursuing references.
 
 Every page exists at a unique address. Once visited, a page is fixed forever. The library exists in potential; your visit collapses it into permanence.
 
@@ -63,17 +63,15 @@ Books are already full of implicit hyperlinks. Every mention of a character, pla
 
 2. **Bounded Infinity**: The form is finite (a book page), but what can exist within it is unbounded.
 
-3. **Interaction as Instantiation**: Nothing exists until you reach for it. Flipping creates the page permanently.
+3. **Every Output Is Also an Input**: Every page contains references that generate more pages. The library generates itself as you explore.
 
-4. **Every Output Is Also an Input**: Every page contains references that generate more pages. The library generates itself as you explore.
+4. **Self-Similarity**: Every page has the same structure—prose containing [[references]]. The system is fractal.
 
-5. **Self-Similarity**: Every page has the same structure—prose containing [[references]]. The system is fractal.
+5. **Coherent World**: All books exist within The Shape of Time. Generated content feels real because it belongs to a consistent fictional universe.
 
-6. **Coherent World**: All books exist within The Shape of Time. Generated content feels real because it belongs to a consistent fictional universe.
+6. **Completeness as Illusion, Coherence as Reality**: The library appears complete because any reference leads to a real book. What's real is the consistency.
 
-7. **Completeness as Illusion, Coherence as Reality**: The library appears complete because any reference leads to a real book. What's real is the consistency.
-
-8. **Native Navigation**: You don't prompt the system. You *read* and you *follow*.
+7. **Native Navigation**: You don't prompt the system. You *read* and you *follow*.
 
 ---
 
@@ -292,8 +290,8 @@ library-of-babel/
 │   ├── schema.sql
 │   └── migrations/
 │       ├── 001_add_canonical_facts.sql
-│       └── 002_add_book_synopses.sql
-├── world_document.md             # Full worldbuilding reference
+│       ├── 002_add_book_synopses.sql
+│       └── 003_remove_citations.sql
 └── README.md
 ```
 
@@ -326,6 +324,7 @@ psql $DATABASE_URL -f database/schema.sql
 # 4. Run migrations
 psql $DATABASE_URL -f database/migrations/001_add_canonical_facts.sql
 psql $DATABASE_URL -f database/migrations/002_add_book_synopses.sql
+psql $DATABASE_URL -f database/migrations/003_remove_citations.sql
 
 # 5. Start development servers
 cd backend && npm run dev      # Port 3000

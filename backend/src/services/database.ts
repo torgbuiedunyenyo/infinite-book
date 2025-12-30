@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Page, Reference, Citation, NeighborPages, CanonicalFact, BookSynopsis } from '../types';
+import { Page, Reference, NeighborPages, CanonicalFact, BookSynopsis } from '../types';
 import { dbLogger } from './logger';
 
 const log = dbLogger;
@@ -57,7 +57,6 @@ function mapRowToPage(row: any): Page {
     pageNumber: row.page_number,
     contentLength: row.content?.length,
     referencesCount: Array.isArray(row.references) ? row.references.length : 0,
-    citationsCount: Array.isArray(row.citations) ? row.citations.length : 0,
     discoveredAt: row.discovered_at,
   });
   
@@ -69,7 +68,6 @@ function mapRowToPage(row: any): Page {
     opening: row.opening,
     closing: row.closing,
     references: row.references as Reference[],
-    citations: (row.citations as Citation[]) || [],
     discoveredAt: row.discovered_at,
   };
 }
@@ -119,7 +117,7 @@ export async function getPage(seed: string, pageNumber: number): Promise<Page | 
   
   const result = await executeQuery<any>(
     'getPage',
-    `SELECT id, seed, page_number, content, opening, closing, "references", citations, discovered_at
+    `SELECT id, seed, page_number, content, opening, closing, "references", discovered_at
      FROM pages 
      WHERE seed = $1 AND page_number = $2`,
     [seed, pageNumber]
@@ -135,7 +133,6 @@ export async function getPage(seed: string, pageNumber: number): Promise<Page | 
     pageNumber,
     id: result.rows[0].id,
     contentLength: result.rows[0].content?.length,
-    citationsCount: result.rows[0].citations?.length || 0,
     discoveredAt: result.rows[0].discovered_at,
   });
   
@@ -159,7 +156,7 @@ export async function getNeighborPages(seed: string, pageNumber: number): Promis
   const prevPromise = prevPageNumbers.length > 0
     ? executeQuery<any>(
         'getNeighborPages:prev',
-        `SELECT id, seed, page_number, content, opening, closing, "references", citations, discovered_at
+        `SELECT id, seed, page_number, content, opening, closing, "references", discovered_at
          FROM pages 
          WHERE seed = $1 AND page_number = ANY($2)
          ORDER BY page_number ASC`,
@@ -169,7 +166,7 @@ export async function getNeighborPages(seed: string, pageNumber: number): Promis
 
   const nextPromise = executeQuery<any>(
     'getNeighborPages:next',
-    `SELECT id, seed, page_number, content, opening, closing, "references", citations, discovered_at
+    `SELECT id, seed, page_number, content, opening, closing, "references", discovered_at
      FROM pages 
      WHERE seed = $1 AND page_number = ANY($2)
      ORDER BY page_number ASC`,
@@ -204,7 +201,6 @@ export async function savePage(page: Page): Promise<Page> {
     openingLength: page.opening.length,
     closingLength: page.closing.length,
     referencesCount: page.references.length,
-    citationsCount: page.citations.length,
     references: page.references.map(r => r.text),
   });
   
@@ -212,8 +208,8 @@ export async function savePage(page: Page): Promise<Page> {
   // try to save the same page simultaneously (e.g., prefetch vs streaming)
   const result = await executeQuery<{ id: number; discovered_at: Date }>(
     'savePage',
-    `INSERT INTO pages (seed, page_number, content, opening, closing, "references", citations)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO pages (seed, page_number, content, opening, closing, "references")
+     VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (seed, page_number) DO UPDATE SET seed = EXCLUDED.seed
      RETURNING id, discovered_at`,
     [
@@ -223,7 +219,6 @@ export async function savePage(page: Page): Promise<Page> {
       page.opening,
       page.closing,
       JSON.stringify(page.references),
-      JSON.stringify(page.citations),
     ]
   );
 
@@ -238,7 +233,6 @@ export async function savePage(page: Page): Promise<Page> {
     seed: savedPage.seed,
     pageNumber: savedPage.pageNumber,
     discoveredAt: savedPage.discoveredAt,
-    citationsCount: savedPage.citations.length,
     contentPreview: savedPage.content.slice(0, 100) + '...',
   });
 

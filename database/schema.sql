@@ -12,7 +12,6 @@ CREATE TABLE pages (
     opening TEXT NOT NULL,
     closing TEXT NOT NULL,
     "references" JSONB DEFAULT '[]'::jsonb,
-    citations JSONB DEFAULT '[]'::jsonb,
     discovered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
     CONSTRAINT unique_seed_page UNIQUE (seed, page_number)
