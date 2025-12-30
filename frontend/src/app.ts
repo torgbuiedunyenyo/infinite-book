@@ -16,6 +16,7 @@ import {
   onReferenceClick,
   updateNavArrows,
 } from './renderer';
+import { initSidebar, onBookSelect, refreshBooks, isSidebarOpen } from './sidebar';
 import { PageData, Reference } from './types';
 import { appLogger, apiLogger, cacheLogger } from './logger';
 
@@ -436,6 +437,11 @@ function handleReferenceClick(seed: string): void {
 }
 
 function handleKeyDown(e: KeyboardEvent): void {
+  // Don't handle navigation keys when sidebar is open (let sidebar handle its own keys)
+  if (isSidebarOpen() && e.key !== 'Escape' && e.key !== 'l') {
+    return;
+  }
+  
   log.debug('Key pressed', {
     key: e.key,
     code: e.code,
@@ -448,6 +454,12 @@ function handleKeyDown(e: KeyboardEvent): void {
   } else if (e.key === 'ArrowRight') {
     handleNavRight();
   } else if (e.key === 'Backspace') {
+    // Don't intercept backspace when typing in an input
+    if (document.activeElement instanceof HTMLInputElement || 
+        document.activeElement instanceof HTMLTextAreaElement) {
+      return;
+    }
+    
     log.info('Backspace pressed - attempting to go back in history');
     const prev = goBack();
     if (prev) {
@@ -467,6 +479,16 @@ async function init(): Promise<void> {
   log.separator('THE INFINITE BOOK - INITIALIZING');
   
   log.info('Starting application initialization');
+  
+  // Initialize the library sidebar
+  log.debug('Initializing library sidebar');
+  initSidebar();
+  
+  // Set up sidebar book selection handler
+  onBookSelect((seed: string) => {
+    log.info('Book selected from sidebar', { seed });
+    navigateTo(seed, 1);
+  });
   
   // Set up click handlers
   log.debug('Setting up navigation click handlers');

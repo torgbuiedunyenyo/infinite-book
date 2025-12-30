@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getOrGeneratePage, streamOrGetPage, ReferrerContext, getGeneratorStats } from '../services/pageGenerator';
-import { getPage, getPoolStats } from '../services/database';
+import { getPage, getPoolStats, getAllBooks } from '../services/database';
 import { getLLMStats } from '../services/llm';
 import { routesLogger } from '../services/logger';
 
@@ -12,6 +12,7 @@ let pageRequests = 0;
 let streamRequests = 0;
 let checkRequests = 0;
 let randomSeedRequests = 0;
+let booksRequests = 0;
 let statsRequests = 0;
 let errorCount = 0;
 
@@ -119,6 +120,49 @@ router.get('/random-seed', (req: Request, res: Response) => {
   });
   
   res.json({ seed: selectedSeed });
+});
+
+// Get all discovered books in the library
+router.get('/books', async (req: Request, res: Response) => {
+  booksRequests++;
+  const requestStart = performance.now();
+  
+  try {
+    log.info('GET /books request received', {
+      totalBooksRequests: booksRequests,
+    });
+    
+    const books = await getAllBooks();
+    
+    const totalDuration = performance.now() - requestStart;
+    
+    log.info('GET /books response ready', {
+      bookCount: books.length,
+      totalDuration: `${totalDuration.toFixed(2)}ms`,
+    });
+    
+    res.json({
+      books: books.map(book => ({
+        seed: book.seed,
+        pageCount: book.pageCount,
+        firstDiscoveredAt: book.firstDiscoveredAt.toISOString(),
+        lastDiscoveredAt: book.lastDiscoveredAt.toISOString(),
+      })),
+      totalBooks: books.length,
+      totalPages: books.reduce((sum, b) => sum + b.pageCount, 0),
+    });
+  } catch (error) {
+    errorCount++;
+    const totalDuration = performance.now() - requestStart;
+    
+    log.error('GET /books failed', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      duration: `${totalDuration.toFixed(2)}ms`,
+    });
+    
+    res.status(500).json({ error: 'Failed to get books' });
+  }
 });
 
 router.get('/page', async (req: Request, res: Response) => {
@@ -388,6 +432,7 @@ router.get('/stats', (req: Request, res: Response) => {
       streamRequests,
       checkRequests,
       randomSeedRequests,
+      booksRequests,
       statsRequests,
       errorCount,
       errorRate: totalRequests > 0 ? `${((errorCount / totalRequests) * 100).toFixed(2)}%` : '0%',

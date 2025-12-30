@@ -276,3 +276,48 @@ export function getPoolStats() {
     avgQueryTime: queryCount > 0 ? `${(totalQueryTime / queryCount).toFixed(2)}ms` : '0ms',
   };
 }
+
+// Interface for discovered book summary
+export interface DiscoveredBook {
+  seed: string;
+  pageCount: number;
+  firstDiscoveredAt: Date;
+  lastDiscoveredAt: Date;
+}
+
+// Get all discovered books (unique seeds with metadata)
+export async function getAllBooks(): Promise<DiscoveredBook[]> {
+  log.info('getAllBooks called');
+  
+  const result = await executeQuery<{
+    seed: string;
+    page_count: string;
+    first_discovered_at: Date;
+    last_discovered_at: Date;
+  }>(
+    'getAllBooks',
+    `SELECT 
+       seed,
+       COUNT(*) as page_count,
+       MIN(discovered_at) as first_discovered_at,
+       MAX(discovered_at) as last_discovered_at
+     FROM pages 
+     GROUP BY seed 
+     ORDER BY last_discovered_at DESC`,
+    []
+  );
+  
+  const books = result.rows.map(row => ({
+    seed: row.seed,
+    pageCount: parseInt(row.page_count, 10),
+    firstDiscoveredAt: row.first_discovered_at,
+    lastDiscoveredAt: row.last_discovered_at,
+  }));
+  
+  log.info('Retrieved all discovered books', {
+    totalBooks: books.length,
+    totalPages: books.reduce((sum, b) => sum + b.pageCount, 0),
+  });
+  
+  return books;
+}
