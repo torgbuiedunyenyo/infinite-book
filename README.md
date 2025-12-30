@@ -6,61 +6,74 @@ Every page exists at a unique address. Once visited, a page is fixed forever. Th
 
 ---
 
+## The World: The Shape of Time
+
+All books in The Infinite Book take place within a single, cohesive world—a science fiction setting where time is three-dimensional.
+
+### The Nature of Time
+
+Time has three dimensions, just as space does—two ways humans perceive a single phenomenon:
+
+- **Primas**: Primas Major ("past") and Primas Minor ("future"). The familiar axis; most travel occurs here.
+- **Phantas**: Times along this axis feel "adjacent" rather than before or after.
+- **Mystas**: The least explored axis. The edges of known time along Mystas are unmapped and dangerous.
+
+**Core properties:**
+- All times exist simultaneously. The "present" is just where you happen to be.
+- Causation is omnidirectional. The past shapes the future; the future shapes the past. This means things can exist in a time because a later time's demand for them caused them to.
+- Time is self-healing. Disturbances fade rather than amplify, like ripples in water.
+- No body duplication. There is only one of you across all of time.
+- Movement through time ages you regardless of direction.
+
+### The Setting
+
+**PRMTTs** (Prostheses for Rapid Movement Through Time) accelerate movement along temporal axes. By 2150, they're compact manufactured devices, ubiquitous among those who can afford them.
+
+**Temporal mapping** charts the currents and flows of time. The major PRMTT companies control the most comprehensive maps, giving them power over who travels where.
+
+The future is wealthier than the past. Resources depleted in the future are extracted from past eras; future tourists visit past times for the experience; future money flows into past economies and reshapes them.
+
+At the far edges of the Mystas axis, beyond mapped time, something is growing—a region where time's self-healing has reversed, disturbances amplify, and travelers risk becoming temporally incoherent.
+
+### The Story
+
+**Jay** works at a shop in 2025 Oakland, in an era shaped by future influence. He meets **Tan**, a wealthy woman from around 2150, when she can't figure out his phone. They fall in love despite an enormous power gap—she has money, status, temporal fluency; he has none of these.
+
+When Tan brings Jay to the future and then disappears, Jay is immediately suspected. He flees across eras, develops temporal senses he was never taught to use, and eventually finds Tan at the Mystas edges where she'd gone on an adventure without considering the consequences for him.
+
+Jay forgives her. But Tan doesn't want to continue the relationship. He returns to Oakland, to his shop—different now, but back where he started.
+
+---
+
 ## The Concept
 
 ### What Is The Infinite Book?
 
-The Infinite Book is a single, unified reading experience that contains all possible books within itself. It is not a collection of books, but *one book* — a book whose pages lead to other pages, whose references open into entire volumes, whose margins contain libraries.
-
-When you open The Infinite Book, you find yourself mid-page, mid-sentence, in some work you've never encountered. You can flip forward to continue reading, flip backward to see what came before, or tap any [[reference]] to be transported to page one of whatever work was cited. That cited work exists — fully, coherently — and contains its own references to still more works. There is no bottom. There is no edge.
+The Infinite Book is a single, unified reading experience that contains all possible books within itself. When you open it, you find yourself mid-page, mid-sentence, in some work you've never encountered. You can flip forward, flip backward, or tap any [[reference]] to be transported to page one of whatever work was cited.
 
 ### The Core Insight
 
-The Infinite Book is built on a simple observation: books are already full of implicit hyperlinks.
-
-Every footnote that says "See Smith (1987)" is a link. Every bibliography entry is a link. Every mention of "as Marchetti argued in her influential monograph" is a link. Every proper noun — every author, every place, every institution — implies a world of context that could be explored.
-
-In physical books, these links are inert. You cannot follow them without leaving your chair, finding another book, opening it.
-
-The Infinite Book makes these links live. Every reference you encounter can be followed. And when you follow it, you find not a summary, not a stub, but a complete work — one that contains its own living references to further works.
+Books are already full of implicit hyperlinks. Every mention of a character, place, or concept implies a world of context. The Infinite Book makes these links live. Every reference you encounter can be followed, leading to a complete work containing its own references to further works. There is no bottom. There is no edge.
 
 ---
 
 ## Design Principles
 
-The Infinite Book is constructed according to eight principles that ensure its coherence and infinite explorable depth:
+1. **A Familiar Container**: The interface is *a book*—pages, typography, margins. Everyone knows how to turn a page.
 
-### 1. A Familiar Container Provides the Grammar
+2. **Bounded Infinity**: The form is finite (a book page), but what can exist within it is unbounded.
 
-The interface is *a book*. Pages. Page numbers. Typography. Margins. The visual and interaction language of reading is universal — everyone knows how to turn a page, how to follow a citation. This familiarity is the scaffolding that makes infinite content navigable.
+3. **Interaction as Instantiation**: Nothing exists until you reach for it. Flipping creates the page permanently.
 
-### 2. Bounded Infinity
+4. **Every Output Is Also an Input**: Every page contains references that generate more pages. The library generates itself as you explore.
 
-The *form* is finite and recognizable (we all know what a book page looks like), but what can *exist* within that form is unbounded. Any seed — any title, any phrase, any name — corresponds to a book. The space of possible books is infinite, but each book, each page, is finite and comprehensible.
+5. **Self-Similarity**: Every page has the same structure—prose containing [[references]]. The system is fractal.
 
-### 3. Interaction as Instantiation
+6. **Coherent World**: All books exist within The Shape of Time. Generated content feels real because it belongs to a consistent fictional universe.
 
-Nothing exists until you reach for it. Flipping to a page, tapping a reference — these acts collapse possibility into actuality. The page you're reading didn't exist until someone navigated to it. The act of exploration is the act of creation. But once created, the page is permanent. Return to it tomorrow, next year, from a different device — you will find exactly what was there before.
+7. **Completeness as Illusion, Coherence as Reality**: The library appears complete because any reference leads to a real book. What's real is the consistency.
 
-### 4. Every Output Is Also an Input
-
-This is the recursive property that makes the system truly infinite. Every page you read (an output of the system) contains references (inputs that generate more outputs). A generated book mentions other books. Those books, when visited, mention still more books. The library generates itself as you explore it.
-
-### 5. Self-Similarity at Every Level
-
-Every page has the same structure: prose containing [[references]]. Every reference leads to another book. Every book contains more references. The system is fractal — zoom in on any part and you find the same generative structure. There are no dead ends, no terminal nodes, no edges.
-
-### 6. Coherent Hallucination
-
-The familiar constraint of the book form — its typography, its scholarly apparatus, its prose conventions — ensures that generated content feels *real*. Not random, not chaotic, but as if it belongs to a consistent alternate literary universe. The books feel like they were written, not generated.
-
-### 7. Completeness as Illusion, Coherence as Reality
-
-The library appears complete because any query within its domain — any reference you can tap — leads to a real, full book. But this completeness is an illusion; the content is generated on demand. What is real is the *coherence*: the consistency of style, the mutual citation of works, the sense that these books all belong to the same intellectual tradition.
-
-### 8. The Native Metaphor for Navigation
-
-You don't "prompt" this system. You don't type queries. You *read*, and you *follow*. The navigation metaphor is the one humans have used for millennia: turning pages, pursuing citations, wandering through stacks. The latent space of all possible books is navigated through the same gestures you'd use in a physical library.
+8. **Native Navigation**: You don't prompt the system. You *read* and you *follow*.
 
 ---
 
@@ -68,84 +81,95 @@ You don't "prompt" this system. You don't type queries. You *read*, and you *fol
 
 ### The Address System
 
-Every page in The Infinite Book has a unique address consisting of two components:
+Every page has a unique address:
 
 ```
 (seed, page_number)
 ```
 
-- **Seed**: A string that identifies which "book" you're in. This can be a title ("The Lost Books of Tacitus"), an author name ("Dr. Elisabeth Marchetti"), a concept ("The Hermeneutics of Silence"), or any other phrase.
-
-- **Page Number**: A positive integer indicating which page of that book you're on.
-
-For example:
-- `("The Lost Books of Tacitus", 1)` — The first page of a book about Tacitus's lost works
-- `("The Lost Books of Tacitus", 47)` — The forty-seventh page of that same book
-- `("Dr. Elisabeth Marchetti", 1)` — The first page of a book about (or by) Dr. Marchetti
+- **Seed**: A string identifying the "book" (a title, character name, place, or any phrase)
+- **Page Number**: A positive integer
 
 ### Navigation
 
-There are exactly three ways to move through The Infinite Book:
+Three ways to move:
 
-1. **Flip Forward**: Move from page N to page N+1 within the same book
-2. **Flip Backward**: Move from page N to page N-1 within the same book (cannot go below page 1)
-3. **Follow a Reference**: Tap a [[bracketed reference]] to go to page 1 of the book whose seed is the reference text
-
-That's it. No search. No index. No table of contents for the library as a whole. You navigate by reading and following.
+1. **Flip Forward**: Page N → Page N+1
+2. **Flip Backward**: Page N → Page N-1 (minimum page 1)
+3. **Follow a Reference**: Tap [[bracketed text]] → Page 1 of that book
 
 ### References
 
-Within the prose of any page, you'll find text enclosed in [[double brackets]]. These are references — links to other books in the library. The text inside the brackets becomes the seed for the linked book.
+Text in [[double brackets]] are links to other books:
 
-Example passage:
-> "The archives at [[the Sonderberg Collection]] contain what remains of [[Marchetti]]'s correspondence with [[the Vermillion Society]]. As [[Dr. Casaubon]] noted in his final lecture, 'We are all reading fragments of the same shattered text.'"
-
-This single paragraph contains four references:
-- Tapping "the Sonderberg Collection" takes you to a book about that archive
-- Tapping "Marchetti" takes you to a book about or by that person
-- Tapping "the Vermillion Society" takes you to a book about that organization
-- Tapping "Dr. Casaubon" takes you to a book about or by that scholar
-
-Each of those books contains its own references. The web extends infinitely.
+> "[[Jay]] had seen the currents shift before, but never like this. The readings from [[Meridian Station]] suggested something was wrong at [[the edges]]."
 
 ### Permanence
 
-When you visit a page for the first time, you *discover* it. The content is generated at that moment and stored permanently. Every subsequent visitor to that same address sees exactly the same content. The page has become part of the permanent library.
+When you visit a page for the first time, you *discover* it. The content is generated and stored permanently. Every subsequent visitor sees the same content.
 
-This means:
-- You can bookmark pages and return to them
-- You can share links with others
-- The library accumulates over time as visitors explore
-- References between books are stable — if Book A cites Book B, Book B exists and will always contain the same content
+### Sequential Discovery
 
-### Bidirectional Consistency
+Pages must be discovered in order. You cannot skip ahead—page 5 can only exist after pages 1-4 have been discovered. This ensures the library grows organically through actual reading, not through URL manipulation or automated crawling.
 
-Pages must be consistent with their neighbors. If you visit page 5 of a book, and page 4 already exists, page 5 must continue naturally from where page 4 left off. If page 6 already exists, page 5 must lead naturally into page 6's opening.
+New books can only be created in two ways:
+1. **Starting from a canonical seed** (curated entry points into the world)
+2. **Following a [[reference]]** from an existing page
 
-This ensures that no matter the order in which pages are discovered, the book reads coherently from beginning to end.
+This means the library's expansion is driven entirely by the reading experience. Every book that exists was discovered by following the natural pathways of the text.
+
+### Consistency Systems
+
+The library maintains consistency through multiple mechanisms:
+
+**Bidirectional Page Consistency**: Pages must flow naturally from their neighbors. If page 4 exists, page 5 continues from it seamlessly.
+
+**Canonical Facts Database**: Established details about characters, places, events, and concepts are extracted and stored. When new pages are created, relevant facts are retrieved to ensure world consistency.
+
+**Book Synopses**: When page 1 of any book is generated, the system extracts a synopsis capturing:
+- What the book is about (2-3 sentences)
+- The narrative mode (character, place, document, event, or concept)
+- The opening situation established on page 1
+
+This synopsis is provided as context for all subsequent pages in that book, ensuring narrative coherence across distant pages (e.g., page 1 and page 20 remain connected to the same story).
 
 ---
 
 ## The Canonical Seeds
 
-When you first enter The Infinite Book with no specific destination, you are placed at page 1 of a randomly selected canonical seed. These are the traditional entry points to the library, drawn from Borges's description of the Library of Babel:
+Entry points to the library—doorways into The Shape of Time. These are the only seeds that can be accessed directly; all other books must be discovered by following [[references]].
 
-- The detailed history of the future
-- The autobiographies of the archangels
-- The faithful catalog of the Library
-- Thousands and thousands of false catalogs of the Library
-- The proof of the falsity of thousands and thousands of false catalogs of the Library
-- A proof of the falsity of the true catalog of the Library
-- The gnostic gospel of Basilides
-- The commentary upon the gnostic gospel of Basilides
-- The commentary on the commentary of the gnostic gospel of Basilides
-- The true story of your death
-- The translation of every book into every language
-- The interpolations of every book into all books
-- The treatise Bede could have written (but did not) on the mythology of the Saxon people
-- The lost books of Tacitus
+**Character-focused:**
+- Jay's first sale
+- The day Tan arrived
+- What her father knew
+- The fixer in Meridian
+- The cartographer's apprentice
 
-From any of these starting points, references lead outward into the infinite library.
+**Place-focused:**
+- Oakland, 2025
+- The shop on the corner
+- Meridian Station
+- The Blitz tourism zone
+- The edges of known time
+
+**Document-focused:**
+- Temporal immigration form 27-B
+- Company internal memo RE: edge containment
+- Underground cartographer's notes
+- A tourist's guide to the authentic past
+
+**Event-focused:**
+- The day she disappeared
+- His arrival in the future
+- What happened at the edges
+- The first extraction
+
+**Concept-focused:**
+- The nature of clef
+- What the tourists don't see
+- How to read the currents
+- The self-healing property
 
 ---
 
@@ -163,63 +187,72 @@ Page {
   references: array      // Extracted [[references]]
   discovered_at: timestamp
 }
+
+CanonicalFact {
+  category: string       // 'character', 'place', 'event', 'object', 'relationship'
+  name: string           // The entity name
+  fact: string           // The established fact
+  source_seeds: array    // Which books established this fact
+}
+
+BookSynopsis {
+  seed: string           // The book identifier
+  synopsis: string       // 2-3 sentence summary
+  narrative_mode: string // 'character', 'place', 'document', 'event', 'concept'
+  opening_situation: string // One-sentence scene description
+}
 ```
 
 ### Generation
 
 When a page is requested that doesn't exist:
 
-1. Check for up to 2 neighboring pages in each direction (N-2, N-1, N+1, N+2)
-2. Build an XML-structured prompt with:
-   - System context (sent as `system` parameter) describing The Infinite Book
-   - Existing pages as context (placed first, per Anthropic best practices)
-   - The specific request (seed and page number)
-   - Instructions for generation (placed after context)
-3. Generate new page content via Claude claude-opus-4-5-20251101 with extended thinking that:
-   - Continues from the previous page(s) if they exist
-   - Leads into the next page(s) if they exist
-   - Contains [[references]] to other works
-   - Maintains consistency with the book's seed/title
-4. Extract opening, closing, and references
-5. Store permanently
+1. **Access control validation:**
+   - For page N > 1: verify page N-1 exists
+   - For page 1 of non-canonical seeds: verify referrer contains [[this seed]] as a reference
+2. Check for up to 2 neighboring pages in each direction
+3. Retrieve relevant canonical facts for world consistency
+4. For pages > 1: retrieve book synopsis and page 1 opening for narrative anchoring
+5. Build a structured prompt with world essence, context, and guidelines
+6. Generate via Claude Opus 4.5 with extended thinking
+7. Extract opening, closing, and references
+8. Store permanently
+9. Background: extract canonical facts and (for page 1) generate book synopsis
 
 ### API
 
+**Page Access:**
 - `GET /api/page?seed={seed}&page={number}` — Get or generate a page
-- `GET /api/page/stream?seed={seed}&page={number}&referrerSeed={seed}&referrerPage={N}` — Stream page generation (SSE), optional referrer for context
-- `GET /api/page/check?seed={seed}&page={number}` — Check if page exists in database
+- `GET /api/page/stream?seed={seed}&page={number}` — Stream generation (SSE)
+- `GET /api/page/check?seed={seed}&page={number}` — Check if page exists
+- `GET /api/page/highest?seed={seed}` — Get highest existing page number for a seed
+
+**Library:**
 - `GET /api/random-seed` — Get a random canonical seed
+- `GET /api/books` — Get all discovered books
+- `GET /api/stats` — System statistics
+
+**Access Control:**
+
+Generation requests enforce sequential discovery:
+- Page N requires page N-1 to exist (returns `422` if violated)
+- New seeds require valid referrer context via `referrerSeed` and `referrerPage` query params
+- Canonical seeds can be accessed without a referrer
+
+Error responses:
+- `422 sequential_access_required` — Tried to access page N before page N-1 exists
+- `422 invalid_seed_access` — Tried to create a new book without following a reference
 
 ### Frontend
 
-The frontend presents a single page at a time, styled to resemble a physical book:
+A single page at a time, styled as a physical book:
 
 - EB Garamond typography
 - Warm paper-colored background
-- Page numbers
-- Justified text with markdown rendering (headers, emphasis, blockquotes)
-- Subtle reference styling (underlined, muted color)
-- Keyboard navigation (arrow keys to flip, backspace to go back)
-- Click/tap zones on left and right edges to flip
-- Streaming text display with live cursor for newly generated pages
-
----
-
-## The Experience
-
-You open The Infinite Book.
-
-You're mid-page, mid-sentence, in a work you've never seen. Something about archives, correspondence, a society whose name you don't recognize. You read. The prose is dense, scholarly, slightly archaic. Footnotes reference other works.
-
-You flip forward. The argument continues. A new character is introduced — a Dr. Casaubon, who apparently wrote extensively on this topic. His name is bracketed. You tap it.
-
-Suddenly you're on page one of a different book entirely. This one is about Casaubon — or perhaps by him. The style is different. The concerns are different. But there are references here too: to Casaubon's mentors, to his rivals, to the institutions where he worked, to the controversies he was embroiled in.
-
-You follow one of those references. Then another. An hour passes. You're deep in the stacks now, far from where you started, reading about a 17th-century heretical movement that may or may not have existed, described in prose that feels genuinely old, citing sources that you could follow but haven't yet.
-
-You bookmark the page. You'll come back tomorrow. When you do, it will be exactly as you left it.
-
-The library is patient. It will wait.
+- Subtle [[reference]] styling
+- Keyboard navigation (arrows to flip, backspace for history)
+- Streaming text with cursor for new pages
+- Library sidebar with search
 
 ---
 
@@ -229,31 +262,39 @@ The library is patient. It will wait.
 library-of-babel/
 ├── backend/
 │   ├── src/
-│   │   ├── index.ts              # Express server entry point
-│   │   ├── types.ts              # TypeScript type definitions
+│   │   ├── index.ts              # Express server
+│   │   ├── types.ts              # TypeScript types
 │   │   ├── routes/
-│   │   │   └── pages.ts          # API route handlers
+│   │   │   └── pages.ts          # API handlers
 │   │   ├── services/
 │   │   │   ├── database.ts       # PostgreSQL operations
+│   │   │   ├── bookService.ts    # Book synopsis generation
+│   │   │   ├── factsService.ts   # Canonical facts extraction
 │   │   │   ├── llm.ts            # Claude API integration
-│   │   │   └── pageGenerator.ts  # Page generation logic
+│   │   │   ├── logger.ts         # Structured logging
+│   │   │   └── pageGenerator.ts  # Page generation orchestration
 │   │   └── prompts/
-│   │       └── templates.ts      # LLM prompt construction
+│   │       └── templates.ts      # LLM prompts with world essence
 │   └── package.json
 ├── frontend/
 │   ├── src/
-│   │   ├── index.html            # Single page HTML
-│   │   ├── styles.css            # Book styling (with markdown support)
-│   │   ├── app.ts                # Main application logic
-│   │   ├── navigation.ts         # History and URL management
-│   │   ├── renderer.ts           # Page rendering with markdown (via marked)
-│   │   └── types.ts              # TypeScript types
+│   │   ├── index.html
+│   │   ├── styles.css
+│   │   ├── app.ts
+│   │   ├── navigation.ts
+│   │   ├── renderer.ts
+│   │   ├── sidebar.ts
+│   │   ├── logger.ts
+│   │   └── types.ts
 │   ├── vite.config.ts
 │   └── package.json
 ├── database/
-│   └── schema.sql                # PostgreSQL schema
-├── APP_SETUP.md                  # Step-by-step setup instructions
-└── README.md                     # This file
+│   ├── schema.sql
+│   └── migrations/
+│       ├── 001_add_canonical_facts.sql
+│       └── 002_add_book_synopses.sql
+├── world_document.md             # Full worldbuilding reference
+└── README.md
 ```
 
 ---
@@ -261,14 +302,14 @@ library-of-babel/
 ## Tech Stack
 
 - **Backend**: Node.js, Express, TypeScript
-- **Frontend**: Vite, TypeScript, vanilla JS, marked (markdown rendering)
+- **Frontend**: Vite, TypeScript, vanilla JS, marked
 - **Database**: PostgreSQL
-- **AI**: Claude claude-opus-4-5-20251101 via Anthropic API (with extended thinking enabled)
-- **Styling**: EB Garamond font, CSS with full markdown support
+- **AI**: Claude Opus 4.5 (page generation) + Claude Sonnet 4.5 (synopsis/fact extraction)
+- **Styling**: EB Garamond font, CSS
 
 ---
 
-## Quick Start (Local Development)
+## Quick Start
 
 ```bash
 # 1. Install dependencies
@@ -277,25 +318,40 @@ cd ../frontend && npm install
 
 # 2. Set up environment
 cp backend/.env.example backend/.env
-# Edit .env with your DATABASE_URL and ANTHROPIC_API_KEY
+# Edit .env with DATABASE_URL and ANTHROPIC_API_KEY
 
 # 3. Initialize database
 psql $DATABASE_URL -f database/schema.sql
 
-# 4. Start development servers (in separate terminals)
-cd backend && npm run dev      # Runs on port 3000
-cd frontend && npm run dev     # Runs on port 5173 with proxy to backend
+# 4. Run migrations
+psql $DATABASE_URL -f database/migrations/001_add_canonical_facts.sql
+psql $DATABASE_URL -f database/migrations/002_add_book_synopses.sql
+
+# 5. Start development servers
+cd backend && npm run dev      # Port 3000
+cd frontend && npm run dev     # Port 5173
 ```
 
 ---
 
-## Getting Started
+## The Experience
 
-See [APP_SETUP.md](./APP_SETUP.md) for detailed, step-by-step setup instructions.
+You open The Infinite Book.
+
+You're mid-page, mid-sentence. Someone named Jay is running. There's mention of "the currents" and something called "Meridian Station." A woman named Tan appears.
+
+You flip forward. A reference to "the edges" is bracketed. You tap it.
+
+You're on page one of a different book—about the Mystas, where time grows thin. References here too: to those who live at the edges, to the dark thing, to the Company that controls the routes.
+
+You follow one reference. Then another. An hour passes. You're deep in the library now, reading about temporal colonialism in prose that feels genuinely lived-in.
+
+You bookmark the page. You'll come back tomorrow. It will be exactly as you left it.
+
+The library is patient. It will wait.
 
 ---
 
 ## License
 
 MIT
-

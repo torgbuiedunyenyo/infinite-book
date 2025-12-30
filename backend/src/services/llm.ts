@@ -24,14 +24,15 @@ const anthropic = new Anthropic({
 });
 
 const MODEL = 'claude-opus-4-5-20251101';
-const MAX_TOKENS = 16000;
-const THINKING_BUDGET = 10000;
+const MAX_TOKENS = 64000;
+const THINKING_BUDGET = 15000;
 
 export async function generatePageContent(context: GenerationContext): Promise<string> {
+  // Must use streaming internally because extended thinking can exceed 10-minute timeout
   const requestId = ++totalRequests;
   nonStreamingRequests++;
   
-  log.separator(`LLM REQUEST #${requestId} (non-streaming)`);
+  log.separator(`LLM REQUEST #${requestId} (streaming-collect)`);
   
   const prompt = buildPrompt(context);
   
@@ -51,16 +52,19 @@ export async function generatePageContent(context: GenerationContext): Promise<s
     promptPreview: prompt.slice(0, 500) + '...',
   });
   
-  log.info(`Request #${requestId}: Calling Claude API`, {
+  log.info(`Request #${requestId}: Calling Claude API (streaming-collect mode)`, {
     model: MODEL,
     maxTokens: MAX_TOKENS,
     thinkingBudget: THINKING_BUDGET,
   });
   
   const startTime = performance.now();
+  let collectedText = '';
+  let thinkingChars = 0;
+  let chunkCount = 0;
   
   try {
-    const message = await anthropic.messages.create({
+    const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system: SYSTEM_PROMPT,
@@ -76,48 +80,37 @@ export async function generatePageContent(context: GenerationContext): Promise<s
       ],
     });
     
+    // Iterate through stream events and collect text
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta') {
+        if (event.delta.type === 'thinking_delta') {
+          const thinkingText = (event.delta as any).thinking || '';
+          thinkingChars += thinkingText.length;
+        } else if (event.delta.type === 'text_delta') {
+          chunkCount++;
+          collectedText += event.delta.text;
+        }
+      }
+    }
+    
     const latency = performance.now() - startTime;
     totalLatency += latency;
     
-    // Extract token usage
-    const inputTokens = message.usage?.input_tokens || 0;
-    const outputTokens = message.usage?.output_tokens || 0;
-    totalInputTokens += inputTokens;
-    totalOutputTokens += outputTokens;
-    
-    // Find thinking and text blocks
-    const thinkingBlock = message.content.find((block) => block.type === 'thinking');
-    const textBlock = message.content.find((block) => block.type === 'text');
-    
-    log.info(`Request #${requestId}: Response received`, {
-      latency: `${latency.toFixed(2)}ms`,
-      inputTokens,
-      outputTokens,
-      stopReason: message.stop_reason,
-      contentBlocksCount: message.content.length,
-      hasThinkingBlock: !!thinkingBlock,
-      hasTextBlock: !!textBlock,
-    });
-    
-    if (thinkingBlock && thinkingBlock.type === 'thinking') {
-      const thinkingLength = thinkingBlock.thinking?.length || 0;
-      log.debug(`Request #${requestId}: Thinking block details`, {
-        thinkingLength,
-        thinkingPreview: thinkingBlock.thinking?.slice(0, 300) + '...',
-      });
-    }
-    
-    if (!textBlock || textBlock.type !== 'text') {
-      log.error(`Request #${requestId}: No text content in response`, {
-        contentBlocks: message.content.map(b => b.type),
+    if (collectedText.length === 0) {
+      log.error(`Request #${requestId}: No text content collected from stream`, {
+        thinkingChars,
+        chunkCount,
       });
       throw new Error('No text content in LLM response');
     }
     
-    log.info(`Request #${requestId}: Generated content`, {
-      textLength: textBlock.text.length,
-      wordCount: textBlock.text.split(/\s+/).length,
-      textPreview: textBlock.text.slice(0, 200) + '...',
+    log.info(`Request #${requestId}: Response collected`, {
+      latency: `${latency.toFixed(2)}ms`,
+      textLength: collectedText.length,
+      thinkingChars,
+      chunkCount,
+      wordCount: collectedText.split(/\s+/).length,
+      textPreview: collectedText.slice(0, 200) + '...',
     });
     
     log.debug(`Request #${requestId}: Cumulative LLM stats`, {
@@ -129,11 +122,13 @@ export async function generatePageContent(context: GenerationContext): Promise<s
       avgLatency: `${(totalLatency / totalRequests).toFixed(2)}ms`,
     });
 
-    return textBlock.text;
+    return collectedText;
   } catch (error) {
     const latency = performance.now() - startTime;
     log.error(`Request #${requestId}: API call failed`, {
       latency: `${latency.toFixed(2)}ms`,
+      collectedSoFar: collectedText.length,
+      chunkCount,
       error: error instanceof Error ? error.message : String(error),
       errorType: error instanceof Error ? error.constructor.name : typeof error,
     });

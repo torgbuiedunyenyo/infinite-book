@@ -89,6 +89,60 @@ async function fetchRandomSeed(): Promise<string> {
   }
 }
 
+/**
+ * Check if a specific page exists in the database.
+ */
+async function checkPageExists(seed: string, page: number): Promise<boolean> {
+  apiLogger.debug('Checking if page exists', { seed, page });
+  
+  try {
+    const res = await fetch(`/api/page/check?seed=${encodeURIComponent(seed)}&page=${page}`);
+    const data = await res.json();
+    
+    apiLogger.debug('Page existence check result', {
+      seed,
+      page,
+      exists: data.exists,
+    });
+    
+    return data.exists;
+  } catch (error) {
+    apiLogger.error('Failed to check page existence', {
+      seed,
+      page,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
+/**
+ * Get the highest existing page number for a seed.
+ * Returns 0 if no pages exist for this seed.
+ */
+async function getHighestExistingPage(seed: string): Promise<number> {
+  apiLogger.debug('Getting highest existing page', { seed });
+  
+  try {
+    const res = await fetch(`/api/page/highest?seed=${encodeURIComponent(seed)}`);
+    const data = await res.json();
+    
+    apiLogger.debug('Highest page result', {
+      seed,
+      highestPage: data.highestPage,
+      exists: data.exists,
+    });
+    
+    return data.highestPage || 0;
+  } catch (error) {
+    apiLogger.error('Failed to get highest page', {
+      seed,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return 0;
+  }
+}
+
 async function fetchPageStreaming(seed: string, page: number, referrer?: ReferrerInfo): Promise<void> {
   const key = locationKey(seed, page);
   streamCount++;
@@ -240,12 +294,60 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
       resolve();
     });
     
-    eventSource.addEventListener('error', (e) => {
+    // Handle server-sent error events (access control errors, etc.)
+    eventSource.addEventListener('error', (e: Event) => {
+      // This handles the SSE event type "error" sent by the server
+      if (e instanceof MessageEvent && e.data) {
+        const duration = performance.now() - startTime;
+        eventSource.close();
+        errorCount++;
+        
+        let errorData: any = null;
+        try {
+          errorData = JSON.parse(e.data);
+        } catch {
+          // Not JSON
+        }
+        
+        if (errorData?.error === 'sequential_access_required') {
+          apiLogger.warn('SSE: Sequential access required', {
+            seed,
+            page,
+            requiredPage: errorData.requiredPage,
+            duration: `${duration.toFixed(2)}ms`,
+          });
+          reject(new Error(`sequential_access_required:${errorData.requiredPage}`));
+          return;
+        }
+        
+        if (errorData?.error === 'invalid_seed_access') {
+          apiLogger.warn('SSE: Invalid seed access', {
+            seed,
+            reason: errorData.reason,
+            duration: `${duration.toFixed(2)}ms`,
+          });
+          reject(new Error('invalid_seed_access'));
+          return;
+        }
+        
+        apiLogger.error('SSE: Server error event', {
+          seed,
+          page,
+          errorData,
+          duration: `${duration.toFixed(2)}ms`,
+        });
+        reject(new Error(errorData?.message || 'Server error'));
+        return;
+      }
+    });
+    
+    // Handle EventSource connection errors (network issues, etc.)
+    eventSource.onerror = () => {
       const duration = performance.now() - startTime;
       eventSource.close();
       errorCount++;
       
-      apiLogger.error('SSE: Stream error', {
+      apiLogger.error('SSE: Connection error', {
         seed,
         page,
         duration: `${duration.toFixed(2)}ms`,
@@ -256,14 +358,14 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
       });
       
       // Only finalize if we were streaming (not for existing pages which are already rendered)
-      if (!receivedExistingPage) {
+      if (!receivedExistingPage && streamedContent.length > 0) {
         // Still finalize the streamed content even on error - content was already displayed
         // Extract references from the streamed text since we may not have received the 'complete' event
         const extractedRefs = extractReferencesFromText(streamedContent);
         finalizeStreaming(streamedContent, extractedRefs);
       }
-      reject(new Error('Stream error'));
-    });
+      reject(new Error('Connection error'));
+    };
   });
 }
 
@@ -359,7 +461,7 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
       duration: `${duration.toFixed(2)}ms`,
     });
     
-    // Prefetch adjacent pages
+    // Prefetch adjacent pages (only existing ones, don't trigger generation)
     log.debug('Starting prefetch of adjacent pages', {
       nextPage: page + 1,
       prevPage: page > 1 ? page - 1 : 'N/A',
@@ -371,11 +473,41 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
     }
   } catch (e) {
     const duration = performance.now() - startTime;
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    
+    // Handle access control errors
+    if (errorMessage.startsWith('sequential_access_required:')) {
+      const requiredPage = parseInt(errorMessage.split(':')[1], 10);
+      log.warn('Sequential access required - redirecting', {
+        seed,
+        requestedPage: page,
+        requiredPage,
+        duration: `${duration.toFixed(2)}ms`,
+      });
+      // Navigate to the required page instead
+      setLoading(false);
+      navigateTo(seed, requiredPage);
+      return;
+    }
+    
+    if (errorMessage === 'invalid_seed_access') {
+      log.warn('Invalid seed access - falling back to random seed', {
+        seed,
+        page,
+        duration: `${duration.toFixed(2)}ms`,
+      });
+      // Fall back to a random canonical seed
+      setLoading(false);
+      const randomSeed = await fetchRandomSeed();
+      navigateTo(randomSeed, 1);
+      return;
+    }
+    
     log.error('Navigation failed', {
       seed,
       page,
       duration: `${duration.toFixed(2)}ms`,
-      error: e instanceof Error ? e.message : String(e),
+      error: errorMessage,
     });
   } finally {
     setLoading(false);
@@ -468,7 +600,28 @@ function handleKeyDown(e: KeyboardEvent): void {
         toPage: prev.page,
       });
       setPageNumber(prev.page);
-      fetchPageStreaming(prev.seed, prev.page);
+      updateNavArrows(prev.page);
+      setLoading(true);
+      
+      fetchPageStreaming(prev.seed, prev.page).then(() => {
+        // Prefetch adjacent pages
+        log.debug('Starting prefetch of adjacent pages after backspace', {
+          nextPage: prev.page + 1,
+          prevPage: prev.page > 1 ? prev.page - 1 : 'N/A',
+        });
+        prefetchPage(prev.seed, prev.page + 1);
+        if (prev.page > 1) {
+          prefetchPage(prev.seed, prev.page - 1);
+        }
+      }).catch((e) => {
+        log.error('Navigation via backspace failed', {
+          seed: prev.seed,
+          page: prev.page,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }).finally(() => {
+        setLoading(false);
+      });
     } else {
       log.debug('No history to go back to');
     }
@@ -518,10 +671,41 @@ async function init(): Promise<void> {
   let location = parseURL();
   
   if (location) {
-    log.info('Starting from URL location', {
+    log.info('URL location detected, validating access', {
       seed: location.seed,
       page: location.page,
     });
+    
+    // Check if this specific page exists
+    const pageExists = await checkPageExists(location.seed, location.page);
+    
+    if (pageExists) {
+      // Page exists - safe to navigate directly
+      log.info('URL page exists, navigating directly', {
+        seed: location.seed,
+        page: location.page,
+      });
+    } else {
+      // Page doesn't exist - check if any pages exist for this seed
+      const highestPage = await getHighestExistingPage(location.seed);
+      
+      if (highestPage > 0) {
+        // Seed exists but requested page doesn't - redirect to highest existing page
+        log.warn('URL page does not exist, redirecting to highest existing page', {
+          seed: location.seed,
+          requestedPage: location.page,
+          redirectingTo: highestPage,
+        });
+        location = { seed: location.seed, page: highestPage };
+      } else {
+        // Seed doesn't exist at all - start from a random canonical seed
+        log.warn('URL seed does not exist, starting from random seed', {
+          attemptedSeed: location.seed,
+        });
+        const randomSeed = await fetchRandomSeed();
+        location = { seed: randomSeed, page: 1 };
+      }
+    }
   } else {
     log.info('No URL location, fetching random seed');
     const seed = await fetchRandomSeed();

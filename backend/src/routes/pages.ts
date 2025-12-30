@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { getOrGeneratePage, streamOrGetPage, ReferrerContext, getGeneratorStats } from '../services/pageGenerator';
-import { getPage, getPoolStats, getAllBooks } from '../services/database';
+import { getPage, getPoolStats, getAllBooks, getHighestPageNumber } from '../services/database';
 import { getLLMStats } from '../services/llm';
 import { routesLogger } from '../services/logger';
+import { SequentialAccessError, InvalidSeedAccessError } from '../types';
 
 const log = routesLogger;
 
@@ -41,11 +42,13 @@ async function parseReferrerContext(req: Request): Promise<ReferrerContext | und
         referrerSeed,
         referrerPage,
         referrerContentLength: referrerPageData.content.length,
+        referrerReferencesCount: referrerPageData.references.length,
       });
       return {
         seed: referrerSeed,
         pageNumber: referrerPage,
         content: referrerPageData.content,
+        references: referrerPageData.references,  // Include references for access validation
       };
     } else {
       log.warn('Referrer page not found in database', {
@@ -59,23 +62,51 @@ async function parseReferrerContext(req: Request): Promise<ReferrerContext | und
   return undefined;
 }
 
+/**
+ * Check if a seed is one of the canonical entry points.
+ * Canonical seeds can be accessed directly without a referrer.
+ */
+function isCanonicalSeed(seed: string): boolean {
+  return CANONICAL_SEEDS.some(s => 
+    s.toLowerCase() === seed.toLowerCase()
+  );
+}
+
 const router = Router();
 
+// Canonical seeds: Entry points into The Shape of Time
 const CANONICAL_SEEDS = [
-  'The detailed history of the future',
-  'The autobiographies of the archangels',
-  'The faithful catalog of the Library',
-  'Thousands and thousands of false catalogs of the Library',
-  'The proof of the falsity of thousands and thousands of false catalogs of the Library',
-  'A proof of the falsity of the true catalog of the Library',
-  'The gnostic gospel of Basilides',
-  'The commentary upon the gnostic gospel of Basilides',
-  'The commentary on the commentary of the gnostic gospel of Basilides',
-  'The true story of your death',
-  'The translation of every book into every language',
-  'The interpolations of every book into all books',
-  'The treatise Bede could have written (but did not) on the mythology of the Saxon people',
-  'The lost books of Tacitus',
+  // Character-focused entries
+  "Jay's first sale",
+  "The day Tan arrived",
+  "What her father knew",
+  "The fixer in Meridian",
+  "The cartographer's apprentice",
+  
+  // Place-focused entries
+  "Oakland, 2025",
+  "The shop on the corner",
+  "Meridian Station",
+  "The Blitz tourism zone",
+  "The edges of known time",
+  
+  // Document-focused entries
+  "Temporal immigration form 27-B",
+  "Company internal memo RE: edge containment",
+  "Underground cartographer's notes",
+  "A tourist's guide to the authentic past",
+  
+  // Event-focused entries
+  "The day she disappeared",
+  "His arrival in the future",
+  "What happened at the edges",
+  "The first extraction",
+  
+  // Concept-focused entries
+  "The nature of clef",
+  "What the tourists don't see",
+  "How to read the currents",
+  "The self-healing property",
 ];
 
 // Request logging middleware for API routes
@@ -195,14 +226,18 @@ router.get('/page', async (req: Request, res: Response) => {
     // Parse referrer context if provided (for page 1 reached via reference click)
     log.debug('Checking for referrer context');
     const referrerContext = await parseReferrerContext(req);
+    
+    // Check if this is a canonical seed (allowed without referrer)
+    const isCanonical = isCanonicalSeed(seed);
 
     log.info('Calling getOrGeneratePage', {
       seed,
       pageNumber,
       hasReferrerContext: !!referrerContext,
+      isCanonicalSeed: isCanonical,
     });
     
-    const { page, isNewDiscovery } = await getOrGeneratePage(seed, pageNumber, referrerContext);
+    const { page, isNewDiscovery } = await getOrGeneratePage(seed, pageNumber, referrerContext, isCanonical);
     
     const totalDuration = performance.now() - requestStart;
     
@@ -212,6 +247,7 @@ router.get('/page', async (req: Request, res: Response) => {
       isNewDiscovery,
       contentLength: page.content.length,
       referencesCount: page.references.length,
+      citationsCount: page.citations.length,
       totalDuration: `${totalDuration.toFixed(2)}ms`,
     });
 
@@ -220,12 +256,46 @@ router.get('/page', async (req: Request, res: Response) => {
       pageNumber: page.pageNumber,
       content: page.content,
       references: page.references,
+      citations: page.citations,
       discoveredAt: page.discoveredAt?.toISOString(),
       isNewDiscovery,
     });
   } catch (error) {
     errorCount++;
     const totalDuration = performance.now() - requestStart;
+    
+    // Handle access control errors with specific status codes
+    if (error instanceof SequentialAccessError) {
+      log.warn('Sequential access error', {
+        seed: error.seed,
+        requestedPage: error.pageNumber,
+        requiredPage: error.pageNumber - 1,
+        duration: `${totalDuration.toFixed(2)}ms`,
+      });
+      res.status(422).json({
+        error: 'sequential_access_required',
+        message: error.message,
+        seed: error.seed,
+        requestedPage: error.pageNumber,
+        requiredPage: error.pageNumber - 1,
+      });
+      return;
+    }
+    
+    if (error instanceof InvalidSeedAccessError) {
+      log.warn('Invalid seed access error', {
+        seed: error.seed,
+        reason: error.reason,
+        duration: `${totalDuration.toFixed(2)}ms`,
+      });
+      res.status(422).json({
+        error: 'invalid_seed_access',
+        message: error.message,
+        seed: error.seed,
+        reason: error.reason,
+      });
+      return;
+    }
     
     log.error('GET /page failed', {
       error: error instanceof Error ? error.message : String(error),
@@ -270,6 +340,9 @@ router.get('/page/stream', async (req: Request, res: Response) => {
     // Parse referrer context if provided (for page 1 reached via reference click)
     log.debug('Checking for referrer context in stream request');
     const referrerContext = await parseReferrerContext(req);
+    
+    // Check if this is a canonical seed (allowed without referrer)
+    const isCanonical = isCanonicalSeed(seed);
 
     log.info('Setting up SSE response headers');
     res.setHeader('Content-Type', 'text/event-stream');
@@ -285,11 +358,14 @@ router.get('/page/stream', async (req: Request, res: Response) => {
       });
     });
 
-    log.info('Starting stream iteration');
+    log.info('Starting stream iteration', {
+      isCanonicalSeed: isCanonical,
+      hasReferrerContext: !!referrerContext,
+    });
     let eventCount = 0;
     let chunkCount = 0;
     
-    for await (const event of streamOrGetPage(seed, pageNumber, referrerContext)) {
+    for await (const event of streamOrGetPage(seed, pageNumber, referrerContext, isCanonical)) {
       eventCount++;
       
       if (event.type === 'existing') {
@@ -297,6 +373,7 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           seed: event.page.seed,
           pageNumber: event.page.pageNumber,
           contentLength: event.page.content.length,
+          citationsCount: event.page.citations.length,
         });
         
         res.write(`event: existing\n`);
@@ -305,6 +382,7 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           pageNumber: event.page.pageNumber,
           content: event.page.content,
           references: event.page.references,
+          citations: event.page.citations,
           discoveredAt: event.page.discoveredAt?.toISOString(),
           isNewDiscovery: false,
         })}\n\n`);
@@ -329,6 +407,7 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           seed: event.page.seed,
           pageNumber: event.page.pageNumber,
           referencesCount: event.page.references.length,
+          citationsCount: event.page.citations.length,
           totalChunks: chunkCount,
         });
         
@@ -337,6 +416,7 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           seed: event.page.seed,
           pageNumber: event.page.pageNumber,
           references: event.page.references,
+          citations: event.page.citations,
           discoveredAt: event.page.discoveredAt?.toISOString(),
           isNewDiscovery: true,
         })}\n\n`);
@@ -361,6 +441,43 @@ router.get('/page/stream', async (req: Request, res: Response) => {
   } catch (error) {
     errorCount++;
     const totalDuration = performance.now() - requestStart;
+    
+    // Handle access control errors with specific error events
+    if (error instanceof SequentialAccessError) {
+      log.warn('Sequential access error in stream', {
+        seed: error.seed,
+        requestedPage: error.pageNumber,
+        requiredPage: error.pageNumber - 1,
+        duration: `${totalDuration.toFixed(2)}ms`,
+      });
+      res.write(`event: error\n`);
+      res.write(`data: ${JSON.stringify({
+        error: 'sequential_access_required',
+        message: error.message,
+        seed: error.seed,
+        requestedPage: error.pageNumber,
+        requiredPage: error.pageNumber - 1,
+      })}\n\n`);
+      res.end();
+      return;
+    }
+    
+    if (error instanceof InvalidSeedAccessError) {
+      log.warn('Invalid seed access error in stream', {
+        seed: error.seed,
+        reason: error.reason,
+        duration: `${totalDuration.toFixed(2)}ms`,
+      });
+      res.write(`event: error\n`);
+      res.write(`data: ${JSON.stringify({
+        error: 'invalid_seed_access',
+        message: error.message,
+        seed: error.seed,
+        reason: error.reason,
+      })}\n\n`);
+      res.end();
+      return;
+    }
     
     log.error('GET /page/stream failed', {
       error: error instanceof Error ? error.message : String(error),
@@ -418,6 +535,43 @@ router.get('/page/check', async (req: Request, res: Response) => {
       page: req.query.page,
     });
     res.status(500).json({ error: 'Failed to check page' });
+  }
+});
+
+// Get the highest existing page number for a seed
+router.get('/page/highest', async (req: Request, res: Response) => {
+  try {
+    const seed = req.query.seed as string;
+    
+    log.info('GET /page/highest request received', { seed });
+
+    if (!seed) {
+      log.warn('Missing seed parameter');
+      errorCount++;
+      res.status(400).json({ error: 'Missing seed parameter' });
+      return;
+    }
+
+    const highestPage = await getHighestPageNumber(seed);
+    
+    log.info('Highest page number result', {
+      seed,
+      highestPage: highestPage ?? 0,
+    });
+    
+    res.json({ 
+      seed, 
+      highestPage: highestPage ?? 0,
+      exists: highestPage !== null,
+    });
+    
+  } catch (error) {
+    errorCount++;
+    log.error('GET /page/highest failed', {
+      error: error instanceof Error ? error.message : String(error),
+      seed: req.query.seed,
+    });
+    res.status(500).json({ error: 'Failed to get highest page' });
   }
 });
 

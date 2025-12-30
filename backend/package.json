@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "The Infinite Book API server - page generation, facts management, and book synopses",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
@@ -16,6 +16,7 @@
     "@anthropic-ai/sdk": "^0.71.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "exa-js": "^2.0.12",
     "express": "^5.2.1",
     "pg": "^8.16.3"
   },

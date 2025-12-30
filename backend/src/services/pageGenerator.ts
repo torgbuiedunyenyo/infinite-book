@@ -1,6 +1,8 @@
-import { Page, Reference, GenerationContext, GetOrGenerateResult } from '../types';
-import { getPage, getNeighborPages, savePage } from './database';
+import { Page, Reference, GenerationContext, GetOrGenerateResult, BookSynopsis, SequentialAccessError, InvalidSeedAccessError } from '../types';
+import { getPage, getNeighborPages, savePage, getBookSynopsis, getPage1Opening } from './database';
 import { generatePageContent, streamPageContent } from './llm';
+import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
+import { scheduleSynopsisGeneration } from './bookService';
 import { generatorLogger } from './logger';
 
 const log = generatorLogger;
@@ -132,12 +134,79 @@ export interface ReferrerContext {
   seed: string;
   pageNumber: number;
   content: string;
+  references: Reference[];  // The references from the referrer page
+}
+
+/**
+ * Validates that a page can be generated based on access control rules:
+ * 1. Page N (N > 1) requires page N-1 to exist
+ * 2. Page 1 of a non-canonical seed requires valid referrer context
+ * 
+ * Throws SequentialAccessError or InvalidSeedAccessError if validation fails.
+ */
+async function validateGenerationAccess(
+  seed: string,
+  pageNumber: number,
+  referrerContext: ReferrerContext | undefined,
+  isCanonicalSeed: boolean
+): Promise<void> {
+  // Rule 1: For page N > 1, page N-1 must exist
+  if (pageNumber > 1) {
+    const previousPage = await getPage(seed, pageNumber - 1);
+    if (!previousPage) {
+      log.warn('Sequential access violation', {
+        seed,
+        requestedPage: pageNumber,
+        requiredPage: pageNumber - 1,
+      });
+      throw new SequentialAccessError(seed, pageNumber);
+    }
+    log.debug('Sequential access validated', {
+      seed,
+      pageNumber,
+      previousPageExists: true,
+    });
+  }
+
+  // Rule 2: For page 1 of a non-canonical seed, require valid referrer
+  if (pageNumber === 1 && !isCanonicalSeed) {
+    // Check if any page exists for this seed already
+    const existingPage1 = await getPage(seed, 1);
+    if (!existingPage1) {
+      // This would create a NEW book - validate referrer
+      if (!referrerContext) {
+        log.warn('Invalid seed access: no referrer context', { seed });
+        throw new InvalidSeedAccessError(seed, 'New books can only be created by following references from existing pages');
+      }
+
+      // Verify the referrer page contains this seed as a reference
+      const hasReference = referrerContext.references.some(
+        ref => ref.seed.toLowerCase() === seed.toLowerCase()
+      );
+      if (!hasReference) {
+        log.warn('Invalid seed access: referrer does not contain reference', {
+          seed,
+          referrerSeed: referrerContext.seed,
+          referrerPage: referrerContext.pageNumber,
+          referrerReferences: referrerContext.references.map(r => r.seed),
+        });
+        throw new InvalidSeedAccessError(seed, 'The referrer page does not contain a reference to this book');
+      }
+
+      log.debug('New seed access validated via referrer', {
+        seed,
+        referrerSeed: referrerContext.seed,
+        referrerPage: referrerContext.pageNumber,
+      });
+    }
+  }
 }
 
 export async function getOrGeneratePage(
   seed: string,
   pageNumber: number,
-  referrerContext?: ReferrerContext
+  referrerContext?: ReferrerContext,
+  isCanonicalSeed: boolean = false
 ): Promise<GetOrGenerateResult> {
   const genId = ++totalGenerations;
   const key = pageKey(seed, pageNumber);
@@ -150,6 +219,7 @@ export async function getOrGeneratePage(
     hasReferrerContext: !!referrerContext,
     referrerSeed: referrerContext?.seed,
     referrerPage: referrerContext?.pageNumber,
+    isCanonicalSeed,
   });
   
   // Check if page already exists
@@ -191,6 +261,10 @@ export async function getOrGeneratePage(
     });
     return { page, isNewDiscovery: false };
   }
+  
+  // ACCESS CONTROL: Validate that this page can be generated
+  log.debug(`Request #${genId}: Validating generation access`);
+  await validateGenerationAccess(seed, pageNumber, referrerContext, isCanonicalSeed);
   
   cacheMisses++;
   nonStreamGenerations++;
@@ -246,12 +320,45 @@ async function doGeneratePage(
     })),
   });
 
+  // Fetch relevant canonical facts for world consistency
+  log.debug(`Request #${genId}: Fetching relevant canonical facts`);
+  const existingContent = neighbors.prev.length > 0 
+    ? neighbors.prev.map(p => p.content).join(' ')
+    : undefined;
+  const canonicalFacts = await getRelevantFactsForGeneration(seed, existingContent);
+  
+  log.info(`Request #${genId}: Canonical facts retrieved`, {
+    factCount: canonicalFacts.length,
+    factNames: canonicalFacts.map(f => f.name),
+  });
+
+  // Fetch book synopsis and page 1 opening for narrative anchoring (for pages > 1)
+  let bookSynopsis: BookSynopsis | null = null;
+  let page1Opening: string | null = null;
+  
+  if (pageNumber > 1) {
+    log.debug(`Request #${genId}: Fetching book context for narrative coherence`);
+    [bookSynopsis, page1Opening] = await Promise.all([
+      getBookSynopsis(seed),
+      getPage1Opening(seed),
+    ]);
+    
+    log.info(`Request #${genId}: Book context retrieved`, {
+      hasSynopsis: !!bookSynopsis,
+      hasPage1Opening: !!page1Opening,
+      narrativeMode: bookSynopsis?.narrativeMode,
+    });
+  }
+
   // Build generation context
   const context: GenerationContext = {
     seed,
     pageNumber,
     prevPages: neighbors.prev,
     nextPages: neighbors.next,
+    canonicalFacts,
+    bookSynopsis: bookSynopsis || undefined,
+    page1Opening: page1Opening || undefined,
     // Only include referrer context for page 1 when no neighboring pages exist
     referrerContext: pageNumber === 1 && neighbors.prev.length === 0 && neighbors.next.length === 0 ? referrerContext : undefined,
   };
@@ -261,6 +368,9 @@ async function doGeneratePage(
     pageNumber: context.pageNumber,
     prevPagesCount: context.prevPages.length,
     nextPagesCount: context.nextPages.length,
+    canonicalFactsCount: context.canonicalFacts?.length || 0,
+    hasBookSynopsis: !!context.bookSynopsis,
+    hasPage1Opening: !!context.page1Opening,
     includesReferrerContext: !!context.referrerContext,
   });
 
@@ -290,6 +400,7 @@ async function doGeneratePage(
     opening,
     closing,
     references,
+    citations: [],
   };
   
   log.debug(`Request #${genId}: Page object constructed`, {
@@ -314,13 +425,18 @@ async function doGeneratePage(
     references: savedPage.references.map(r => r.text),
   });
   
+  // Schedule background extraction tasks (won't block response)
+  scheduleFactExtraction(savedPage);
+  scheduleSynopsisGeneration(savedPage);  // Generate synopsis for page 1
+  
   return savedPage;
 }
 
 export async function* streamOrGetPage(
   seed: string,
   pageNumber: number,
-  referrerContext?: ReferrerContext
+  referrerContext?: ReferrerContext,
+  isCanonicalSeed: boolean = false
 ): AsyncGenerator<
   | { type: 'existing'; page: Page }
   | { type: 'chunk'; text: string }
@@ -339,6 +455,7 @@ export async function* streamOrGetPage(
     hasReferrerContext: !!referrerContext,
     referrerSeed: referrerContext?.seed,
     referrerPage: referrerContext?.pageNumber,
+    isCanonicalSeed,
   });
   
   // Check if page already exists
@@ -382,6 +499,10 @@ export async function* streamOrGetPage(
     return;
   }
   
+  // ACCESS CONTROL: Validate that this page can be generated
+  log.debug(`Stream #${genId}: Validating generation access`);
+  await validateGenerationAccess(seed, pageNumber, referrerContext, isCanonicalSeed);
+  
   cacheMisses++;
   streamGenerations++;
   
@@ -423,21 +544,57 @@ export async function* streamOrGetPage(
       })),
     });
 
+    // Fetch relevant canonical facts for world consistency
+    log.debug(`Stream #${genId}: Fetching relevant canonical facts`);
+    const existingContent = neighbors.prev.length > 0 
+      ? neighbors.prev.map(p => p.content).join(' ')
+      : undefined;
+    const canonicalFacts = await getRelevantFactsForGeneration(seed, existingContent);
+    
+    log.info(`Stream #${genId}: Canonical facts retrieved`, {
+      factCount: canonicalFacts.length,
+      factNames: canonicalFacts.map(f => f.name),
+    });
+
+    // Fetch book synopsis and page 1 opening for narrative anchoring (for pages > 1)
+    let bookSynopsis: BookSynopsis | null = null;
+    let page1Opening: string | null = null;
+    
+    if (pageNumber > 1) {
+      log.debug(`Stream #${genId}: Fetching book context for narrative coherence`);
+      [bookSynopsis, page1Opening] = await Promise.all([
+        getBookSynopsis(seed),
+        getPage1Opening(seed),
+      ]);
+      
+      log.info(`Stream #${genId}: Book context retrieved`, {
+        hasSynopsis: !!bookSynopsis,
+        hasPage1Opening: !!page1Opening,
+        narrativeMode: bookSynopsis?.narrativeMode,
+      });
+    }
+
     // Build generation context
     const context: GenerationContext = {
       seed,
       pageNumber,
       prevPages: neighbors.prev,
       nextPages: neighbors.next,
+      canonicalFacts,
+      bookSynopsis: bookSynopsis || undefined,
+      page1Opening: page1Opening || undefined,
       // Only include referrer context for page 1 when no neighboring pages exist
       referrerContext: pageNumber === 1 && neighbors.prev.length === 0 && neighbors.next.length === 0 ? referrerContext : undefined,
     };
     
     log.debug(`Stream #${genId}: Generation context prepared for streaming`, {
       includesReferrerContext: !!context.referrerContext,
+      hasBookSynopsis: !!context.bookSynopsis,
+      hasPage1Opening: !!context.page1Opening,
       contextSummary: {
         prevPages: context.prevPages.length,
         nextPages: context.nextPages.length,
+        canonicalFacts: context.canonicalFacts?.length || 0,
       },
     });
 
@@ -486,6 +643,7 @@ export async function* streamOrGetPage(
       opening,
       closing,
       references,
+      citations: [],
     };
     
     log.debug(`Stream #${genId}: Page object constructed from stream`, {
@@ -507,6 +665,10 @@ export async function* streamOrGetPage(
       totalStreamTime: `${streamTime.toFixed(2)}ms`,
       references: savedPage.references.map(r => r.text),
     });
+    
+    // Schedule background extraction tasks (won't block response)
+    scheduleFactExtraction(savedPage);
+    scheduleSynopsisGeneration(savedPage);  // Generate synopsis for page 1
     
     // Resolve the promise so any waiters get the result
     resolveGeneration!(savedPage);

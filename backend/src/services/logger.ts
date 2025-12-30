@@ -217,4 +217,5 @@ export const dbLogger = createLogger('Database');
 export const llmLogger = createLogger('LLM');
 export const generatorLogger = createLogger('Generator');
 export const routesLogger = createLogger('Routes');
+export const factsLogger = createLogger('Facts');
 

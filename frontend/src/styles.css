@@ -577,3 +577,114 @@ body {
     }
 }
 
+/* ===================================
+   CITATIONS
+   =================================== */
+
+/* Citation superscript markers */
+.citation {
+    font-size: 0.75em;
+    vertical-align: super;
+    line-height: 0;
+    color: #6a5a8a;
+    cursor: pointer;
+    padding: 0 1px;
+    transition: color 0.15s ease;
+    font-weight: 500;
+}
+
+.citation:hover {
+    color: #4a3a6a;
+}
+
+.citation-missing {
+    color: #999;
+    cursor: default;
+}
+
+/* Citation tooltip */
+.citation-tooltip {
+    position: absolute;
+    z-index: 1000;
+    width: 320px;
+    max-width: calc(100vw - 20px);
+    background: #fdfcfa;
+    border: 1px solid #d8d0c0;
+    border-radius: 8px;
+    box-shadow: 
+        0 4px 16px rgba(60, 50, 40, 0.15),
+        0 1px 3px rgba(60, 50, 40, 0.1);
+    padding: 16px;
+    font-family: 'EB Garamond', serif;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(4px);
+    transition: 
+        opacity 0.2s ease,
+        visibility 0.2s ease,
+        transform 0.2s ease;
+    pointer-events: none;
+}
+
+.citation-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.citation-tooltip-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #3a3428;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.citation-tooltip-snippet {
+    font-size: 14px;
+    color: #5a5040;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-style: italic;
+}
+
+.citation-tooltip-link {
+    display: inline-block;
+    font-size: 13px;
+    color: #6a5a8a;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s ease;
+}
+
+.citation-tooltip-link:hover {
+    color: #4a3a6a;
+    text-decoration: underline;
+}
+
+/* Mobile tooltip adjustments */
+@media (max-width: 768px) {
+    .citation-tooltip {
+        width: 280px;
+        padding: 14px;
+    }
+    
+    .citation-tooltip-title {
+        font-size: 14px;
+    }
+    
+    .citation-tooltip-snippet {
+        font-size: 13px;
+        -webkit-line-clamp: 3;
+    }
+}
+
