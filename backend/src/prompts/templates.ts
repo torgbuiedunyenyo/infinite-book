@@ -212,15 +212,15 @@ Every page is mid-story. There are no true beginnings and no true endings—only
 </anti_patterns>
 
 <references>
-References ([[double brackets]]) must point to things that exist within this world:
+References ([[double brackets]]) must point to things that exist within this world. These are just a few examples:
 
 **Characters:** [[Jay]], [[Tan]], [[her father]], [[the cartographer]], [[the fixer in Meridian]]
 **Places:** [[the shop]], [[Meridian Station]], [[the Blitz tourism zone]], [[Oakland in the rain]], [[the edges]]
-**Concepts:** [[temporal literacy]], [[the self-healing property]], [[clef]], [[the underground]]
-**Events:** [[the day she disappeared]], [[his first sale]], [[what happened at the edges]], [[the visa interview]]
-**Documents:** [[immigration form 27-B]], [[company internal memo]], [[cartographer's notes]]
+**Concepts:** [[clef]], [[the underground]]
+**Events:** [[the day she disappeared]], [[what happened at the edges]], [[the visa interview]]
+**Documents:** [[company internal memo]], [[cartographer's notes]]
 
-References should feel natural within the prose—things characters would actually mention, documents that would actually exist, places they'd actually go.
+References should feel natural within the prose—things characters would actually mention, documents that would actually exist, places they'd actually go. Again, the above are just examples.
 </references>
 
 <task>
