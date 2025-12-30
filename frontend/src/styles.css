@@ -127,10 +127,11 @@ body {
 }
 
 .nav-zone {
-    position: fixed;
-    top: 0;
-    width: 100px;
-    height: 100%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 80px;
     cursor: pointer;
     z-index: 10;
     display: flex;
@@ -139,15 +140,11 @@ body {
 }
 
 #nav-left {
-    left: 0;
-    justify-content: flex-start;
-    padding-left: 20px;
+    left: 10px;
 }
 
 #nav-right {
-    right: 0;
-    justify-content: flex-end;
-    padding-right: 20px;
+    right: 10px;
 }
 
 .nav-arrow {
@@ -247,15 +244,16 @@ body {
     }
     
     .nav-zone {
-        width: 60px;
+        width: 30px;
+        height: 60px;
     }
     
     #nav-left {
-        padding-left: 12px;
+        left: 5px;
     }
     
     #nav-right {
-        padding-right: 12px;
+        right: 5px;
     }
     
     .nav-arrow {

@@ -5,55 +5,76 @@ World Essence
 
 ## The Nature of Time
 
-Time and space are properties of one another—two ways humans perceive a single phenomenon. Time has three dimensions, just as space does. Moving through time is like moving through space. There is only one of you, in one place, at any moment. If you travel somewhere in time, you are no longer where you were—just as if you travel somewhere in space. You cannot go back to a place in time to find someone who has died, any more than you can go back to a place in space to find them. They are gone from all of spacetime.
+## Core Points: Time and Its Navigation
 
-The three axes are Primas, Phantas, and Mystas. Primas is the familiar one: Primas Major is what we call "the past," Primas Minor is "the future." Most travel happens along Primas. Phantas is less traveled; times along this axis feel "adjacent" rather than before or after. Mystas is the least explored. The edges of known time along Mystas are unmapped, and something dangerous is growing there.
+**Time's True Shape**
+Time isn't a one-dimensional arrow pointing from past to future—it has at least three dimensions, just like space. Time and space are inseparable properties of a single thing called "spacetime." The document names these three temporal axes: Primas (the familiar past/future axis), Phantas, and Mystas—each with "Major" and "Minor" directions. The common conception of time as a vector with only one existing moment (the present) is fundamentally wrong. There may be additional dimensions beyond these three, but understanding just these requires substantial effort.
 
-All times exist simultaneously. The "present" is just where you happen to be. Causation runs in every direction—the past shapes the future, but the future also shapes the past. All times influence one another, with strength increasing by proximity. This means things can exist in a time because a later time's demand for them caused them to.
+**We're Not the Center**
+Just as humanity once wrongly believed Earth was the center of the universe, we wrongly believe the "present" is the center of time. Defining all time relative to our current moment is as absurd as measuring all spatial distances from wherever we happen to stand—imagine saying "Sacramento is 345 miles from me" instead of "Sacramento is 100 miles from San Francisco." This self-centered framework makes time travel seem impossibly complicated, just as believing Earth was flat once made ocean travel seem impossible.
 
-Time is self-healing. Disturbances fade rather than amplify, like ripples in water.
+**Other Times Exist Independently**
+The past doesn't freeze when we leave it, and the future already exists before we arrive. Times continue evolving whether we occupy them or not. If you leave Sacramento for San Francisco, you wouldn't assume Sacramento freezes in place or that San Francisco doesn't exist until you arrive—yet we make exactly these assumptions about time. This insight resolves classic paradoxes: there's no "two selves" problem because once you leave a moment, you're simply no longer there. If you return, you'll find that time changed in your absence, just as a city would.
 
-Moving through time wears down your body regardless of direction, like wheels on a wagon moving forward or backward.
+**Mutual Causation**
+All moments in time influence each other bidirectionally, like molecules of water affecting neighboring molecules in a lake. The future causes the present just as the past does, and effects travel along all temporal axes. Crucially, influence diminishes with distance—time is "self-healing." The dramatic "butterfly effect" of fiction is adolescent fantasy; a stone dropped in a lake creates ripples that fade, not amplify. Times closest to us are most affected by our movements.
+
+**We Already Sense Time**
+We perceive time constantly but dismiss these perceptions as imagination. Like all senses, what we perceive is partly constructed by our brain—vision itself is mostly the brain filling gaps from sparse photon data. We sense time in all directions with clarity proportional to proximity. Sensing a future moment doesn't guarantee it will look identical when we arrive, just as a distant city looks different up close. This doesn't make the sensing useless—it helps us navigate.
+
+**Why It Seems Linear**
+Clocks run forward because they're programmed to—writing "12:00" on a wall doesn't determine when the wall actually is. We age not because time flows in one direction, but because movement through time in *any* direction wears down the body, like wagon wheels wearing regardless of direction.
+
+**Practical Navigation**
+Effective time travel requires establishing stable reference points outside ourselves and mapping temporal "currents" like ocean flows—a three-dimensional vector field, not static points. Understanding causation must expand to include all temporal directions. Technology for rapid time travel remains primitive; we haven't "invented the wheel" because we didn't believe movement was possible. Early experimentation suggests unusual spatial movements (circular motion, moving backward) and potentially light or heat may accelerate temporal navigation.
 
 ## Technology
 
-**PRMTTs** (Prostheses for Rapid Movement Through Time) accelerate movement along temporal axes. They don't teleport; travel takes subjective time and requires navigation. Early breakthroughs involved circular movements, unusual body orientations, elevation, and manipulation of light and heat. By 2150, they're compact manufactured devices, ubiquitous among those who can afford them.
+**PRMTTs** (Prostheses for Rapid Movement Through Time) accelerate movement along temporal axes. They don't teleport; travel takes subjective time and requires navigation. Early breakthroughs involved circular movements, unusual body orientations, elevation, and manipulation of light and heat. Over centuries, they evolved into compact manufactured devices, ubiquitous among those who can afford them.
 
-**Temporal mapping** charts the currents and flows of time, which behave like water. Maps must be three-dimensional and constantly updated. Navigation without accurate maps risks becoming lost or drifting toward unmapped edges. The major PRMTT companies control the most comprehensive maps.
+**Temporal mapping** charts the currents and flows of time, which behave like water. Maps must be three-dimensional and constantly updated. Navigation without accurate maps risks becoming lost or drifting into unmapped regions. The major PRMTT companies control the most comprehensive maps, giving them enormous power over who can travel where and when.
 
-**Other future technology:** Neural interfaces have replaced most physical devices. Medical technology has extended lifespans. Communication is largely neural rather than verbal or device-based. Someone from 2150 visiting 2025 would find a smartphone confusing and primitive.
+**Other future technology:** Neural interfaces have replaced most physical devices. Medical technology has extended lifespans. Communication is largely neural rather than verbal or device-based. Someone from the future visiting 2025 would find a smartphone confusing and primitive.
 
 ## The World
 
-The future is wealthier than the past. Resources depleted in the future are extracted from past eras; future tourists visit past times for the experience; future money flows into past economies and reshapes them.
+The future is wealthier than the past. The relationship between eras mirrors relationships between wealthy and poor nations, between metropole and periphery. This manifests in several ways:
 
-Past eras popular with tourists transform around that tourism. The Nazi Blitz in London is now a managed spectacle—the bombings still happen but are controlled, the danger real enough to thrill but safe enough to sell, the locals building their economy around visitors. When the sirens sound, everyone knows what to do.
+**Resource extraction:** The future sends operations into the past to extract natural resources and raw materials that have been depleted in their own time. Past governments cooperate; their leaders personally profit while populations bear the costs.
 
-One small example: In 2025 Oakland, shops sell clef, a substance popular with future tourists. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors.
+**Tourism:** Wealthy future citizens travel to the past for entertainment and novelty. Entire eras transform around this tourism. The Nazi Blitz in London is now a managed spectacle—the bombings still happen but are controlled, the danger real enough to thrill but safe enough to sell. When the sirens sound, everyone knows what to do.
 
-Travel from past to future requires documentation and sponsorship; visas have strict return dates. An underground exists for those without papers—forgers, fixers, guides who know unmonitored routes. Future people and past people speak the same language but with a century of drift; communication involves constant small confusions. Relationships between people of different eras attract attention and assumptions.
+**Labor and cultural arbitrage:** Services and goods are cheaper in the past. Future companies outsource operations to past eras. Art, music, and cuisine are taken from the past and sold in the future, often without compensation.
 
-At the far edges of the Mystas axis, beyond mapped time, something is growing. A region where time's self-healing has reversed—disturbances amplify instead of fading, causation becomes chaotic, travelers risk becoming temporally incoherent, scattered across moments. The PRMTT companies maintain research stations nearby and monitor its expansion. They know more than they share publicly.
+In 2025 Oakland, shops sell clef, a substance popular with future tourists. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors. Medical services and infrastructure have been upgraded in tourist areas, creating stark inequalities between zones that attract visitors and those that don't.
+
+**Preservation zones** exist where future influence is restricted—eras kept artificially "pristine" by limiting economic development. These are essentially human zoos, residents kept in relative poverty to maintain the aesthetic tourists want.
+
+**Immigration controls** restrict travel from past to future. Official justifications cite resource scarcity and security concerns. The real reasons: labor market protection, maintaining the wealth differential that makes extraction profitable, and keeping past populations available as a tourism product. Visas require sponsorship and have strict return dates. Overstaying is a serious crime. An underground exists for those without papers—forgers, fixers, guides who know unmonitored routes.
+
+**Temporal prejudice** shapes daily life. Past people in the future face assumptions of economic desperation, cultural backwardness, criminal tendencies. Slurs exist. Relationships between people of different eras attract suspicion—assumed to be transactional. Past people cluster in specific neighborhoods, work specific jobs, exist in legal gray zones even with legitimate documentation.
+
+At the far edges of the Mystas axis lies unmapped territory. The currents there are fast, turbulent, constantly shifting—not more dangerous in principle, but practically treacherous without reliable maps. Travelers risk becoming lost, carried by currents they can't predict toward regions no one has charted. The PRMTT companies maintain research stations nearby, slowly extending their maps. The company that charts the edges first will control access to whatever lies beyond.
 
 ## The Story
 
-**Jay** works at a shop in 2025 Oakland. He's lived his whole life in an era shaped by future influence—he's used to tourists, to products that don't quite belong, to navigating a world not entirely his own. He's not trained in temporal mechanics, but he has instincts. He notices what doesn't add up.
+**Jay** works at a shop in 2025 Oakland. He's lived his whole life in an era shaped by future influence—he's used to tourists, to products that don't quite belong, to navigating a world not entirely his own. He's observant. He notices what doesn't add up.
 
-**Tan** is from around 2150, daughter of an executive at the leading PRMTT company. Wealthy, temporally literate, comfortable moving through eras. She visits the past and meets Jay when she can't figure out how to pay with his phone—she's used to neural interfaces. He gives her the clef for free. They become friends, then fall in love.
+**Tan** is from the future, daughter of an executive at the leading PRMTT company. Wealthy, well-traveled, comfortable moving through eras. She visits the past and meets Jay when she can't figure out how to pay with his phone—she's used to neural interfaces. He gives her the clef for free. They become friends, then fall in love.
 
-Jay knows how their relationship looks. Tan has money, status, temporal fluency; he has none of these. He loves her anyway.
+Jay knows how their relationship looks. Tan has money, status, access to maps and technology; he has none of these. He loves her anyway.
 
-Tan brings Jay to the future; her father arranges documentation. Jay finds the future disorienting—he can't sense time like natives do, he gets lost easily, he depends on Tan to navigate. People assume things about why he's there.
+Tan brings Jay to the future; her father arranges documentation. Jay finds the future disorienting—he doesn't know the technology, the layout, the social cues. He depends on Tan to navigate. People assume things about why he's there. Tan's friends are polite but condescending. Her family is cold.
 
 Days after arriving, Tan disappears. Jay is immediately suspected. He runs.
 
-While fleeing across eras, Jay learns to navigate time by necessity. He traces Tan's movements, encounters the underground networks, glimpses the dark thing at the edges. He returns to 2025 and finds it changed in his absence—his shop is different, people don't quite remember him right. Time continued without him.
+While fleeing across eras, Jay learns to navigate time through study and necessity. He traces Tan's movements, encounters the underground networks, glimpses the unmapped edges. He returns to 2025 and finds it changed in his absence—his shop is different, people don't quite remember him right. Time continued without him.
 
-He finds Tan. She'd gone to the Mystas edges on an adventure, curious about the dark thing, planning to explain "in her own time." It hadn't occurred to her what her disappearance would mean for Jay—that he'd be blamed, hunted, forced to remake himself just to survive.
+He finds Tan. She'd gone to the Mystas edges on an adventure, curious about the unmapped territory, planning to explain "in her own time." It hadn't occurred to her what her disappearance would mean for Jay—that he'd be blamed, hunted, forced to remake himself just to survive. She wasn't cruel; she simply didn't think about it. He wasn't real to her in the way she was real to herself.
 
-Jay forgives her. But Tan doesn't want to continue the relationship. The work of being with someone from a different era, of truly seeing him—it's not something she's willing to do.
+Jay forgives her. But Tan doesn't want to continue the relationship. The work of truly seeing someone from a different era, of accounting for the power between them—it's not something she's willing to do.
 
-Jay returns to 2025 Oakland, to his shop. He's traveled further than most people from his era ever will, he's survived. But he's back where he started, selling clef to tourists, watching them come and go.
+Jay returns to 2025 Oakland, to his shop. He's traveled further than most people from his era ever will. He's survived. But he's back where he started, selling clef to tourists, watching them come and go.
 </world_essence>
 
 <library_system>

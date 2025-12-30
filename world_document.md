@@ -1,48 +1,50 @@
+Looking at this document against Document 1, I see the same core contradiction plus some additional issues:
+
+**Major Contradiction: The Dark Thing**
+
+Document 1 explicitly calls amplifying disturbances "ludicrous adolescent fantasy." This document describes "the self-healing property of time has reversed—disturbances amplify rather than fade" and travelers becoming "temporally incoherent, scattered across moments." This violates the core physics.
+
+**Additional Issues:**
+
+1. "Temporally incoherent, scattered across moments" contradicts Document 1's assertion that "there is only one you, in all of time"—you can't be scattered if there's only one of you.
+
+2. The timeline still suggests PRMTTs are sophisticated by ~2150, though Document 1 says it will take "hundreds of years" for basic technology.
+
+3. Various references to sensing/instincts that the user wants removed.
+
+Here's the revised version:
+
+---
+
 # The Shape of Time
 
 ## A Worldbuilding Document
 
-------
+---
 
 ## Part One: The Nature of Time
 
-### The Three Dimensions
+### Core Points: Time and Its Navigation
 
-Time is not a line or a vector. Time has three dimensions, just as space does, because time and space are properties of one another—two ways humans perceive a single phenomenon that has no adequate name.
+**Time's True Shape**
+Time isn't a one-dimensional arrow pointing from past to future—it has at least three dimensions, just like space. Time and space are inseparable properties of a single thing called "spacetime." These three temporal axes are named: Primas (the familiar past/future axis), Phantas, and Mystas—each with "Major" and "Minor" directions. The common conception of time as a vector with only one existing moment (the present) is fundamentally wrong. There may be additional dimensions beyond these three, but understanding just these requires substantial effort.
 
-The three axes of time are:
+**We're Not the Center**
+Just as humanity once wrongly believed Earth was the center of the universe, we wrongly believe the "present" is the center of time. Defining all time relative to our current moment is as absurd as measuring all spatial distances from wherever we happen to stand—imagine saying "Sacramento is 345 miles from me" instead of "Sacramento is 100 miles from San Francisco." This self-centered framework makes time travel seem impossibly complicated, just as believing Earth was flat once made ocean travel seem impossible.
 
-**Primas** (the familiar axis)
+**Other Times Exist Independently**
+The past doesn't freeze when we leave it, and the future already exists before we arrive. Times continue evolving whether we occupy them or not. If you leave Sacramento for San Francisco, you wouldn't assume Sacramento freezes in place or that San Francisco doesn't exist until you arrive—yet we make exactly these assumptions about time. This insight resolves classic paradoxes: there's no "two selves" problem because once you leave a moment, you're simply no longer there. If you return, you'll find that time changed in your absence, just as a city would.
 
-- Primas Major: what we traditionally call "the past"
-- Primas Minor: what we traditionally call "the future"
-- This is the axis along which most commercial and recreational time travel occurs
+**Mutual Causation**
+All moments in time influence each other bidirectionally, like molecules of water affecting neighboring molecules in a lake. The future causes the present just as the past does, and effects travel along all temporal axes. Crucially, influence diminishes with distance—time is "self-healing." The dramatic "butterfly effect" of fiction is adolescent fantasy; a stone dropped in a lake creates ripples that fade, not amplify. Times closest to us are most affected by our movements.
 
-**Phantas** (the second axis)
+**Why It Seems Linear**
+Clocks run forward because they're programmed to—writing "12:00" on a wall doesn't determine when the wall actually is. We age not because time flows in one direction, but because movement through time in *any* direction wears down the body, like wagon wheels wearing regardless of direction.
 
-- Phantas Major and Phantas Minor
-- Movement along this axis is less intuitive and less commonly traveled
-- Times along this axis feel "adjacent" rather than "before" or "after"
+**Practical Navigation**
+Effective time travel requires establishing stable reference points outside ourselves and mapping temporal "currents" like ocean flows—a three-dimensional vector field, not static points. Understanding causation must expand to include all temporal directions. Technology for rapid time travel remains primitive; we haven't "invented the wheel" because we didn't believe movement was possible. Early experimentation suggests unusual spatial movements (circular motion, moving backward) and potentially light or heat may accelerate temporal navigation.
 
-**Mystas** (the third axis)
-
-- Mystas Major and Mystas Minor
-- The least understood and least traveled axis
-- The edges of known time along this axis are where the dark thing is brewing
-
-### Core Properties of Time
-
-**All times exist simultaneously.** The present is not special. What we call "the present" is simply where we happen to be, the same way "here" in space is simply where we happen to stand. Other times continue to exist and change whether or not we occupy them.
-
-**All times affect all other times.** Causation is mutual and omnidirectional. The past causes the future, but the future also causes the past. Times along the Phantas axis affect times along the Primas axis. Every moment in time is like a molecule of water in a lake, disturbing and being disturbed by every other molecule, with magnitude increasing according to proximity.
-
-**Time is self-healing.** Disturbances diminish rather than amplify. A stone dropped in a lake does not alter the river's course with multiplying intensity—it creates ripples that fade. This means changes to time tend to stabilize rather than cascade. It also means resistance to power structures is naturally dampened.
-
-**There is no duplication of bodies.** Traveling to a time you previously occupied does not mean encountering a past self. There is only one of you in all of time, just as there is only one of you in all of space. When you leave a time, you are no longer there. If you return, only you arrive—but the time itself will have changed in your absence.
-
-**Movement through time ages you regardless of direction.** Whether you travel toward Primas Major or Primas Minor, forward or backward, your body wears down. There is no returning to youth by going "back" in time.
-
-------
+---
 
 ## Part Two: Time Travel Technology
 
@@ -55,7 +57,7 @@ Prostheses for Rapid Movement Through Time (PRMTTs) were developed over centurie
 - Vertical or diagonal elevation via mechanical means
 - Manipulation of light and heat (mirrors, focused thermal energy)
 
-These crude methods evolved over generations into sophisticated technology. By 2150, PRMTTs are manufactured devices—compact, reliable, and ubiquitous among those who can afford them.
+These crude methods evolved over generations into sophisticated technology. In the future era where Tan lives, PRMTTs are manufactured devices—compact, reliable, and ubiquitous among those who can afford them.
 
 ### How PRMTTs Work
 
@@ -63,7 +65,7 @@ PRMTTs do not teleport users through time. They accelerate movement along tempor
 
 The devices work by generating specific patterns of spatial movement, light, and thermal energy that human bodies cannot produce unassisted. The user experiences a sensation of motion, though their spatial position may not change significantly. Journeys of significant temporal distance can take hours or days of subjective experience.
 
-PRMTTs require calibration to the user's destination. This is where temporal mapping becomes essential. Without accurate maps of temporal flows, a PRMTT user can become lost, arrive at an unintended time, or worse—drift toward the unmapped edges.
+PRMTTs require calibration to the user's destination. This is where temporal mapping becomes essential. Without accurate maps of temporal flows, a PRMTT user can become lost, arrive at an unintended time, or worse—drift toward the unmapped edges from which return becomes increasingly difficult.
 
 ### Temporal Mapping
 
@@ -82,9 +84,9 @@ Tan's father is a powerful executive at the leading PRMTT manufacturer. This com
 - Significant influence over temporal immigration policy
 - Extensive infrastructure at key temporal transit points
 
-The company's official business is facilitating tourism and commerce across eras. Its unofficial business includes resource extraction from the past, influence over past governments, and—at the edges of its operations—activities related to the dark thing that threatens known time.
+The company's official business is facilitating tourism and commerce across eras. Its unofficial business includes resource extraction from the past, influence over past governments, and—at the edges of its operations—exploration of the unmapped regions that border known time.
 
-------
+---
 
 ## Part Three: The Political Economy of Time
 
@@ -149,9 +151,9 @@ Slurs and derogatory terms exist for past people, though the specific words are 
 
 Past people in the future often cluster in specific neighborhoods, work specific jobs, and exist in a legal gray zone even when their documentation is legitimate. Jay experiences this immediately upon arrival.
 
-------
+---
 
-## Part Four: The Dark Thing at the Edges
+## Part Four: The Unmapped Edges
 
 ### What the Edges Are
 
@@ -159,28 +161,25 @@ Past people in the future often cluster in specific neighborhoods, work specific
 
 The edges exist in all three temporal dimensions, but the most distant and least explored edges lie along the Mystas axis. Few people travel far along Mystas; fewer return from its extremes.
 
-### What Is Brewing There
+### What Lies There
 
-Something is growing at the Mystas edges. Rumors describe it variously as:
+The Mystas edges are not inherently more dangerous than mapped regions—time's fundamental properties remain consistent everywhere. The danger is practical: without reliable maps, travelers cannot predict where currents will carry them.
 
-- A darkness that swallows travelers
-- A zone where time behaves incorrectly—flowing backward, stopping, looping
-- A presence that is aware and hungry
-- A wound in the structure of time itself
+The currents at the edges are fast, turbulent, and constantly shifting. Mapping efforts fail because the territory changes faster than cartographers can chart it. Travelers who venture too far find themselves carried by flows they cannot anticipate toward regions no one has documented. Without landmarks or reference points, they cannot find their way back.
 
-The truth encompasses several of these descriptions. Decades of temporal extraction have consequences. The future has been mining the past's resources, diverting temporal flows for commerce, and reshaping the structure of time to suit its needs. This activity has destabilized something at the edges.
+The PRMTT companies have lost expeditions to the edges. They maintain research stations at the boundaries of mapped space, slowly extending their charts, but progress is difficult. Some regions have been mapped and then "lost" when currents shifted and the maps became obsolete.
 
-The dark thing is not a creature in the conventional sense. It is a region of temporal dysfunction that is expanding. Within it, the self-healing property of time has reversed—disturbances amplify rather than fade. Causation becomes chaotic. The boundaries between times break down. Travelers who enter do not die exactly; they become temporally incoherent, scattered across moments, unable to maintain a continuous existence.
-
-The dark thing is growing because the exploitation continues. Every resource extracted, every tourist visiting, every temporal flow diverted for profit adds incrementally to the instability. The PRMTT companies know this. They have known for years. They continue because stopping would mean abandoning their business model, and they believe they can manage the problem—contain it at the edges, find a technological solution, or simply profit until the collapse comes and then escape to some safe time.
+Rumors circulate about what lies in the deep unmapped regions—travelers' tales of strange times, impossible places, zones where familiar rules seem not to apply. Most of these stories are exaggerations or fabrications. The truth is simpler and more frightening: no one knows what's out there, because no one who's gone far enough has returned to tell.
 
 ### The Company's Involvement
 
-Tan's father's company is deeply involved in both the exploitation causing the problem and the efforts to study and contain it. The company maintains research stations near the Mystas edges. It has developed instruments to monitor the dark thing's expansion. It has suppressed information about the severity of the threat.
+Tan's father's company is deeply involved in edge exploration. The company maintains research stations near the Mystas boundaries. It has developed instruments to track current patterns. It has mapped further than any competitor.
 
-Tan, through her father's position, had access to information most people don't have. She learned something about the company's activities at the edges. This knowledge is connected to her disappearance.
+The company's interest is partly scientific, partly commercial. If the edges can be mapped, they can be traveled. New temporal territories mean new resources, new tourism destinations, new markets. The company that charts the edges first will control access to whatever lies beyond.
 
-------
+Tan, through her father's position, had access to information about the company's edge operations. She learned about the expeditions, the losses, the slow progress. This knowledge sparked her curiosity about seeing the edges for herself.
+
+---
 
 ## Part Five: The Characters
 
@@ -188,9 +187,9 @@ Tan, through her father's position, had access to information most people don't 
 
 Jay is a young man living in Oakland in 2025. He works at a shop (a liquor store or convenience store) that serves both local customers and future tourists. He sells clef, among other things. His economic existence depends on future money.
 
-Jay is not formally educated in temporal mechanics, but he has the street smarts of someone who's grown up in an era saturated with future influence. He's used to wealthy strangers appearing and disappearing, used to products and trends that don't quite make sense, used to navigating a world that doesn't fully belong to his own time.
+Jay is not formally educated in temporal mechanics, but he has the practical knowledge of someone who's grown up in an era saturated with future influence. He's used to wealthy strangers appearing and disappearing, used to products and trends that don't quite make sense, used to navigating a world that doesn't fully belong to his own time.
 
-He is temporally illiterate in the formal sense—he can't read temporal maps, doesn't know how to calibrate a PRMTT. But he has instincts. He notices things. He's survived by paying attention to what doesn't add up.
+He is temporally illiterate in the formal sense—he can't read temporal maps, doesn't know how to calibrate a PRMTT. But he's observant. He notices things. He's survived by paying attention to what doesn't add up.
 
 When Tan enters his shop and struggles with payment, he recognizes her as a future person immediately—not from any single detail, but from the aggregate of small wrong notes. Her confusion with the phone. Her clothes that are slightly off. Her assumption that things should work differently. He gives her the clef for free partly out of kindness, partly out of curiosity, partly because he's drawn to her in a way he doesn't fully understand.
 
@@ -198,7 +197,7 @@ Jay is not naive about the power imbalance between them. He knows how relationsh
 
 ### Tan
 
-Tan is a young woman from the future, somewhere around 2150. Her father is a powerful executive at the leading PRMTT company. She has grown up wealthy, privileged, and educated in temporal mechanics. She can navigate PRMTTs intuitively, and read temporal maps fluently.
+Tan is a young woman from the future. Her father is a powerful executive at the leading PRMTT company. She has grown up wealthy, privileged, and educated in temporal mechanics. She can operate PRMTTs fluently and read temporal maps with ease.
 
 She comes to 2025 Oakland as a tourist, initially. It's a popular destination—gritty, authentic, a taste of the "real" past before it became too transformed. She's been to other eras, other places. She's comfortable traveling through time in a way Jay will never be.
 
@@ -206,17 +205,17 @@ When she enters Jay's shop, her confusion with the phone is genuine. Payment tec
 
 Their friendship develops over subsequent visits. She keeps returning to his shop, then to other places with him, then to his life. She tells herself she's interested in authentic past culture. She doesn't admit, at first, that she's interested in him.
 
-Tan has complicated feelings about her father's company and the temporal economy she benefits from. She's not an activist or a revolutionary—she's grown up inside the system and has the blind spots that come with privilege—but she's not comfortable either. She asks questions. She notices contradictions. This quality is what eventually leads her to discover what's happening at the edges.
+Tan has complicated feelings about her father's company and the temporal economy she benefits from. She's not an activist or a revolutionary—she's grown up inside the system and has the blind spots that come with privilege—but she's not comfortable either. She asks questions. She notices contradictions. This quality is what eventually leads her to become curious about the edges.
 
 Her relationship with Jay is genuine in its way. She does care about him. But she has never had to consider him as fully as she considers herself. The gap between them is not something she's ever been forced to reckon with—she can always leave.
 
 ### Tan's Father
 
-Tan's father is an executive at the leading PRMTT company—high enough to have real power, not high enough to control the company's overall direction. He is complicit in the company's activities, including its role in the destabilization at the edges, but he is not a pure villain. He loves his daughter. He has justified his participation in various ways over the years.
+Tan's father is an executive at the leading PRMTT company—high enough to have real power, not high enough to control the company's overall direction. He loves his daughter. He has justified his participation in various corporate activities over the years.
 
 When Tan brings Jay to the future, her father facilitates it. He's not enthusiastic about the relationship, but he's not willing to break with his daughter over it. He pulls strings to get Jay a visa, housing, a path toward legitimacy. He tells himself he's being supportive. He's also keeping them close, where he can monitor the situation.
 
-Her father knows more about the dark thing than almost anyone outside the company's inner circle. He knows it's getting worse. He knows the company's public reassurances are lies. He's been trying to protect Tan from this knowledge, and from the company's increasingly desperate measures to contain the problem.
+Her father knows more about the edge expeditions than almost anyone outside the company's inner circle. He knows how many have been lost. He's been trying to protect Tan from developing too much interest in the unmapped regions.
 
 When Tan disappears, her father's reaction is complicated. He may genuinely not know where she is. His cooperation with authorities in blaming Jay may be genuine belief, or a convenient narrative, or simply the path of least resistance.
 
@@ -226,9 +225,9 @@ Law enforcement in the future treats Jay as the obvious suspect. He's a past per
 
 Beyond official law enforcement, Tan's father's company has its own security apparatus. These corporate agents have resources and reach that exceed government authorities. They can operate across eras, access temporal maps and transit infrastructure, and pursue targets with a persistence that public police cannot match.
 
-Jay is running from both. The police want to arrest him. The company wants something else—possibly to silence him, possibly to recover something Tan had, possibly to prevent him from reaching the edges where the truth lies.
+Jay is running from both. The police want to arrest him. The company wants something else—possibly to silence him, possibly to recover something Tan had, possibly to prevent him from reaching the edges where their operations are conducted.
 
-------
+---
 
 ## Part Six: The Plot
 
@@ -238,11 +237,11 @@ Jay and Tan meet in his shop. She's confused by the phone; he gives her the clef
 
 Jay falls in love with Tan. Tan falls in love with Jay, or something like it. Both are aware of how their relationship looks from the outside. Both proceed anyway.
 
-### Part Two: Arrival in the Future (circa 2150)
+### Part Two: Arrival in the Future
 
 Tan wants Jay to see her world. Her father arranges documentation. They travel to the future together.
 
-Jay's experience of the future is disorienting. He gets lost easily—not just spatially, but temporally. He depends on Tan to navigate.
+Jay's experience of the future is disorienting. The technology is unfamiliar, the social cues are different, the layout of cities follows patterns he doesn't understand. He depends on Tan to navigate.
 
 The social dynamics are worse. Everyone assumes he's with Tan for citizenship, money, status. He's treated as a curiosity at best, a predator at worst. Tan's friends are polite but condescending. Her family is cold.
 
@@ -264,7 +263,7 @@ He runs.
 
 Jay flees into the temporal margins—times and routes that aren't heavily monitored, places where past people disappear into the cracks of the system. He makes contact with the underground networks that help temporal immigrants: forgers, fixers, people who know hidden paths through time.
 
-He's not just running; he's investigating. He retraces Tan's final days. He learns about her father's company, about the research stations at the edges, about the dark thing. He discovers that Tan had been curious about the same things—not out of moral outrage, but out of adventurous interest.
+He's not just running; he's investigating. He retraces Tan's final days. He learns about her father's company, about the research stations at the edges, about the expeditions that never returned. He discovers that Tan had been curious about the same things—not out of moral outrage, but out of adventurous interest.
 
 His investigation takes him through multiple eras:
 
@@ -273,23 +272,23 @@ His investigation takes him through multiple eras:
 - To future times he can access through underground channels
 - Eventually, toward the Mystas edges where rumors suggest Tan may have gone
 
-Along the way, he learns to navigate by instinct when maps fail. He becomes something he never expected: a competent time traveler, self-taught under pressure.
+Along the way, he learns to navigate through study and practice. He becomes something he never expected: a competent time traveler, self-taught under pressure.
 
 ### Part Five: The Truth
 
 Jay eventually discovers what happened to Tan.
 
-She went to the Mystas edges. Not because she was silenced or kidnapped or caught up in conspiracy—but because she wanted to. She'd learned about the dark thing, found it fascinating, and decided to go see it for herself. It was an adventure. She had the resources, the training, the equipment. She didn't think to tell anyone because she planned to explain it all when she got back, "in her own time."
+She went to the Mystas edges. Not because she was silenced or kidnapped or caught up in conspiracy—but because she wanted to. She'd learned about the unmapped regions, found them fascinating, and decided to go see for herself. It was an adventure. She had the resources, the training, the equipment. She didn't think to tell anyone because she planned to explain it all when she got back, "in her own time."
 
 She didn't consider what her disappearance would mean for Jay. It didn't occur to her that he would be blamed, hunted, forced to flee through time to clear his name. She wasn't being cruel—she simply didn't think about it. He wasn't real to her in the way she was real to herself.
 
-Jay finds her at the edges, or in transit back from them. She's fine. She's had an incredible experience. She's excited to tell him about it.
+Jay finds her returning from the edges, or at a station near them. She's fine. She's had an incredible experience. She's excited to tell him about it.
 
 ### Part Six: Resolution
 
 Jay has to decide what to do with this.
 
-He's spent weeks or months running, hiding, learning to survive across times. He's been terrified, exhausted, transformed. He's developed skills he never knew he could have. He's seen things about how the world works—about the dark thing, about the companies, about the future's exploitation of the past—that he can never unsee.
+He's spent weeks or months running, hiding, learning to survive across times. He's been terrified, exhausted, transformed. He's developed skills he never knew he could have. He's seen things about how the world works—about the company's operations, about the future's exploitation of the past—that he can never unsee.
 
 And Tan didn't think about him at all.
 
@@ -299,11 +298,11 @@ They try, briefly, to continue. But Tan doesn't want to do the work. The relatio
 
 Jay returns to Oakland, to 2025, to his shop. The time has changed in his absence—it's not quite the place he left—but it's still recognizable. He's different now. He understands things about the structure of the world that most people in his era don't know.
 
-He goes back to work. He sells clef to future tourists. He watches them come and go, knowing what he knows, carrying what he's learned. The dark thing is still growing at the edges. The exploitation continues. Nothing has been fixed.
+He goes back to work. He sells clef to future tourists. He watches them come and go, knowing what he knows, carrying what he's learned. The edges remain unmapped. The exploitation continues. Nothing has been fixed.
 
 But Jay is still here. He's survived. And he knows, now, that there's more to time than the single direction he was taught to see.
 
-------
+---
 
 ## Part Seven: Additional Worldbuilding Details
 
@@ -311,7 +310,7 @@ But Jay is still here. He's survived. And he knows, now, that there's more to ti
 
 Clef is a substance popular among future tourists visiting past eras. Its exact nature is not specified, but it functions socially like a regional delicacy or a local drug—something you consume "when in 2025 Oakland" as part of the authentic experience.
 
-Clef exists in 2025 Oakland because of reverse causation. Future demand for clef in 2025 caused it to exist there. This is not a paradox; it's simply how time works. The future shaped the past, as all times shape all other times.
+Clef exists in 2025 Oakland because of omnidirectional causation. Future demand for clef in 2025 caused it to exist there. This is not a paradox; it's simply how time works. The future shaped the past, as all times shape all other times.
 
 Clef is legal in 2025 (it's sold in liquor stores) but may have a different legal status in the future, making past eras an attractive place to consume it without consequences.
 
@@ -334,7 +333,7 @@ Preservation zones are controversial. Residents are kept in relative poverty to 
 
 ### Language and Communication
 
-Language drift over a century and more creates communication barriers between eras. Future people and past people speak recognizably the same language, but idioms, references, slang, and even some basic vocabulary have shifted. Tan and Jay can understand each other, but there are constant small moments of confusion or mistranslation.
+Language drift over time creates communication barriers between eras. Future people and past people speak recognizably the same language, but idioms, references, slang, and even some basic vocabulary have shifted. Tan and Jay can understand each other, but there are constant small moments of confusion or mistranslation.
 
 Translation technology exists in the future but is imperfect. Jay often misses nuances in future conversation.
 
@@ -344,7 +343,7 @@ Beyond PRMTTs, future technology is substantially advanced:
 
 - Neural interfaces have replaced most physical devices (hence Tan's confusion with Jay's phone)
 - Medical technology has extended lifespans and cured most diseases
-- Communication is largely telepathic/neural rather than verbal or textual
+- Communication is largely neural rather than verbal or textual
 - Transportation within an era uses methods Jay doesn't understand
 
 When Jay is in the future, he struggles with basic daily activities that require technological fluency he doesn't have.
@@ -354,7 +353,7 @@ When Jay is in the future, he struggles with basic daily activities that require
 A substantial underground exists to help past people navigate the future illegally. This includes:
 
 - Document forgers who create convincing temporal visas
-- Guides who know hidden routes through time, paths that avoid monitored transit points
+- Guides who know routes through time that avoid monitored transit points
 - Safe houses in various eras where people can hide from authorities
 - Fixers who can arrange employment, housing, and identity in the future for those who want to disappear
 
