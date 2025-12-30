@@ -76,37 +76,21 @@ const router = Router();
 
 // Canonical seeds: Entry points into The Shape of Time
 const CANONICAL_SEEDS = [
-  // Character-focused entries
-  "Jay's first sale",
-  "The day Tan arrived",
-  "What her father knew",
-  "The fixer in Meridian",
-  "The cartographer's apprentice",
-  
-  // Place-focused entries
-  "Oakland, 2025",
-  "The shop on the corner",
-  "Meridian Station",
-  "The Blitz tourism zone",
-  "The edges of known time",
-  
-  // Document-focused entries
-  "Temporal immigration form 27-B",
-  "Company internal memo RE: edge containment",
-  "Underground cartographer's notes",
-  "A tourist's guide to the authentic past",
-  
-  // Event-focused entries
-  "The day she disappeared",
-  "His arrival in the future",
-  "What happened at the edges",
-  "The first extraction",
-  
-  // Concept-focused entries
-  "The nature of clef",
-  "What the tourists don't see",
-  "How to read the currents",
-  "The self-healing property",
+
+  "Out of Time",
+  "On Time",
+  "Ahead of Time",
+  "For The Time Being",
+  "From Time to Time",
+  "In No Time",
+  "Saving Time",
+  "Time Wasted",
+  "Time After Time",
+  "About Time",
+  "Killing Time",
+  "Time Flies",
+  "Time Will Tell",
+  "Buying Time",
 ];
 
 // Request logging middleware for API routes

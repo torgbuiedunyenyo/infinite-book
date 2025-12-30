@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CanonicalFact, Page } from '../types';
-import { saveCanonicalFact, searchRelevantFacts, getFactsByNames } from './database';
+import { saveCanonicalFact, searchRelevantFacts } from './database';
 import { factsLogger } from './logger';
 
 const log = factsLogger;
@@ -11,14 +11,6 @@ const anthropic = new Anthropic({
 
 // Use Sonnet 4.5 for fact extraction (balanced performance)
 const EXTRACTION_MODEL = 'claude-sonnet-4-5-20250929';
-
-// Known important names in the world - these get priority in fact retrieval
-const KNOWN_ENTITIES = [
-  'jay', 'tan', 'her father', "tan's father", 'the cartographer',
-  'oakland', 'the shop', 'meridian', 'meridian station', 'the edges',
-  'prmtt', 'clef', 'the underground', 'the company',
-  'primas', 'phantas', 'mystas', 'the dark thing',
-];
 
 /**
  * Extract canonical facts from a newly generated page.
@@ -164,7 +156,7 @@ Return ONLY the JSON array, no other text.
 
 /**
  * Get relevant canonical facts for generating a new page.
- * Combines full-text search with known entity lookup.
+ * Uses full-text search to find facts related to the seed.
  */
 export async function getRelevantFactsForGeneration(
   seed: string,
@@ -175,50 +167,16 @@ export async function getRelevantFactsForGeneration(
     hasExistingContent: !!existingPageContent,
   });
 
-  const facts: CanonicalFact[] = [];
-  const seenFactIds = new Set<number>();
-
-  // 1. Search for facts relevant to the seed
-  const seedFacts = await searchRelevantFacts(seed, 8);
-  for (const fact of seedFacts) {
-    if (fact.id && !seenFactIds.has(fact.id)) {
-      seenFactIds.add(fact.id);
-      facts.push(fact);
-    }
-  }
-
-  // 2. Look for known entity names in the seed and existing content
-  const textToSearch = `${seed} ${existingPageContent || ''}`.toLowerCase();
-  const mentionedEntities: string[] = [];
-
-  for (const entity of KNOWN_ENTITIES) {
-    if (textToSearch.includes(entity)) {
-      mentionedEntities.push(entity);
-    }
-  }
-
-  if (mentionedEntities.length > 0) {
-    const entityFacts = await getFactsByNames(mentionedEntities);
-    for (const fact of entityFacts) {
-      if (fact.id && !seenFactIds.has(fact.id)) {
-        seenFactIds.add(fact.id);
-        facts.push(fact);
-      }
-    }
-  }
-
-  // Limit total facts to avoid overwhelming the prompt
-  const limitedFacts = facts.slice(0, 12);
+  // Search for facts relevant to the seed
+  const facts = await searchRelevantFacts(seed, 12);
 
   log.info('Relevant facts retrieved', {
     seed,
-    totalFacts: limitedFacts.length,
-    fromSearch: seedFacts.length,
-    mentionedEntities,
-    factNames: limitedFacts.map(f => f.name),
+    totalFacts: facts.length,
+    factNames: facts.map(f => f.name),
   });
 
-  return limitedFacts;
+  return facts;
 }
 
 /**
