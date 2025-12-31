@@ -28,6 +28,8 @@ log.debug('DOM elements captured', {
 });
 
 let currentReferences: Reference[] = [];
+let currentSeed: string = '';
+let currentPageNumber: number = 1;
 
 // Stats
 let totalRenders = 0;
@@ -38,6 +40,12 @@ let referenceClickCount = 0;
 export function setPageNumber(num: number): void {
   log.debug('Setting page number', { pageNumber: num });
   pageNumberEl.textContent = `p. ${num}`;
+  currentPageNumber = num;
+}
+
+export function setCurrentSeed(seed: string): void {
+  log.debug('Setting current seed', { seed });
+  currentSeed = seed;
 }
 
 export function updateNavArrows(pageNumber: number): void {
@@ -190,7 +198,14 @@ export function finalizeStreaming(fullText: string, references: Reference[]): vo
 function formatContentSimple(text: string): string {
   // During streaming, use simple markdown parsing without reference links
   // This gives a preview while content is being generated
-  return marked.parse(text) as string;
+  let html = marked.parse(text) as string;
+  
+  // Add book title on page 1
+  if (currentPageNumber === 1 && currentSeed) {
+    html = `<h1 class="book-title">${escapeHtml(currentSeed)}</h1>` + html;
+  }
+  
+  return html;
 }
 
 function formatContent(text: string): string {
@@ -234,6 +249,11 @@ function formatContent(text: string): string {
   log.debug('Placeholders replaced with reference spans', {
     finalHtmlLength: html.length,
   });
+  
+  // Add book title on page 1
+  if (currentPageNumber === 1 && currentSeed) {
+    html = `<h1 class="book-title">${escapeHtml(currentSeed)}</h1>` + html;
+  }
   
   return html;
 }

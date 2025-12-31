@@ -8,6 +8,7 @@ import {
 } from './navigation';
 import {
   setPageNumber,
+  setCurrentSeed,
   clearContent,
   setLoading,
   renderContent,
@@ -450,6 +451,7 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
   });
   
   setCurrentLocation({ seed, page });
+  setCurrentSeed(seed);
   setPageNumber(page);
   updateNavArrows(page);
   setLoading(true);
