@@ -93,7 +93,7 @@ Return JSON only, no other text:
   try {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 4000,
+      max_tokens: 16000,  // Must be greater than THINKING_BUDGET (10000)
       thinking: {
         type: 'enabled',
         budget_tokens: THINKING_BUDGET,
@@ -205,7 +205,7 @@ Return only the summary text, no JSON wrapper or other formatting.
   try {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 2000,
+      max_tokens: 16000,  // Must be greater than THINKING_BUDGET (10000)
       thinking: {
         type: 'enabled',
         budget_tokens: THINKING_BUDGET,
@@ -302,7 +302,7 @@ Return only the momentum summary text, no JSON wrapper or other formatting.
   try {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 2000,
+      max_tokens: 16000,  // Must be greater than THINKING_BUDGET (10000)
       thinking: {
         type: 'enabled',
         budget_tokens: THINKING_BUDGET,
@@ -343,9 +343,13 @@ Return only the momentum summary text, no JSON wrapper or other formatting.
 
 // ==================== SCHEDULING ====================
 
+// Max retries for background arc generation
+const ARC_GENERATION_MAX_RETRIES = 3;
+
 /**
  * Schedule Book Arc generation after page 1 is saved.
  * Runs asynchronously to avoid blocking the response.
+ * Includes retry logic to handle transient failures.
  */
 export function scheduleArcGeneration(page: Page): void {
   if (page.pageNumber !== 1) {
@@ -355,18 +359,38 @@ export function scheduleArcGeneration(page: Page): void {
   log.info('Scheduling book arc generation', { seed: page.seed });
 
   setImmediate(async () => {
-    try {
-      const arc = await generateBookArc(page.seed, page.content);
-      if (arc) {
-        await saveBookArc(arc);
-        log.info('Book arc saved to database', { seed: page.seed });
+    for (let attempt = 1; attempt <= ARC_GENERATION_MAX_RETRIES; attempt++) {
+      try {
+        log.info(`Book arc generation attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES}`, { seed: page.seed });
+        
+        const arc = await generateBookArc(page.seed, page.content);
+        if (arc) {
+          await saveBookArc(arc);
+          log.info('Book arc saved to database', { seed: page.seed, attempt });
+          return; // Success - exit retry loop
+        } else {
+          log.warn(`Book arc generation returned null (attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES})`, {
+            seed: page.seed,
+          });
+        }
+      } catch (error) {
+        log.error(`Background book arc generation failed (attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES})`, {
+          seed: page.seed,
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
-    } catch (error) {
-      log.error('Background book arc generation failed', {
-        seed: page.seed,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      
+      // Wait before retry (except on last attempt)
+      if (attempt < ARC_GENERATION_MAX_RETRIES) {
+        log.info(`Waiting 10s before retry...`, { seed: page.seed });
+        await new Promise(resolve => setTimeout(resolve, 10000));
+      }
     }
+    
+    // All retries failed
+    log.error(`Book arc generation FAILED after ${ARC_GENERATION_MAX_RETRIES} attempts`, {
+      seed: page.seed,
+    });
   });
 }
 

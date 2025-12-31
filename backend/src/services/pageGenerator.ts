@@ -1,14 +1,15 @@
 import { Page, Reference, GenerationContext, GetOrGenerateResult, SequentialAccessError, InvalidSeedAccessError } from '../types';
-import { getPage, getPreviousPages, savePage, getBookArc, getChunkSummaries } from './database';
+import { getPage, getPreviousPages, savePage, getBookArc, getChunkSummaries, saveBookArc } from './database';
 import { generatePageContent, streamPageContent } from './llm';
 import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
-import { getContextForGeneration, scheduleArcGeneration, scheduleChunkAndMomentum } from './summaryService';
+import { getContextForGeneration, scheduleArcGeneration, scheduleChunkAndMomentum, generateBookArc } from './summaryService';
 import { generatorLogger } from './logger';
 
 // ==================== CONTEXT WAITING ====================
 // Constants for waiting on required context
 const CONTEXT_POLL_INTERVAL = 2000; // Check every 2 seconds
 const CONTEXT_MAX_WAIT = 120000;    // Wait up to 2 minutes
+const ARC_GENERATION_MAX_RETRIES = 3; // Max attempts to generate book arc
 
 const log = generatorLogger;
 
@@ -34,7 +35,8 @@ function pageKey(seed: string, pageNumber: number): string {
  * - Pages 2+ have the book arc (generated from page 1)
  * - Pages 6+ have the most recent chunk summary
  * 
- * Polls the database at intervals until context exists or timeout is reached.
+ * If the book arc doesn't exist after initial wait, actively retries generation
+ * instead of just polling. This handles cases where the background task failed.
  */
 async function waitForRequiredContext(
   seed: string,
@@ -46,8 +48,10 @@ async function waitForRequiredContext(
   if (pageNumber > 1) {
     let bookArc = await getBookArc(seed);
     
-    while (!bookArc && (Date.now() - startTime) < CONTEXT_MAX_WAIT) {
-      log.debug('Waiting for book arc', {
+    // First, wait a bit for background task to complete (30 seconds)
+    const initialWait = 30000;
+    while (!bookArc && (Date.now() - startTime) < initialWait) {
+      log.debug('Waiting for book arc (initial wait)', {
         seed,
         pageNumber,
         elapsed: `${Date.now() - startTime}ms`,
@@ -57,12 +61,53 @@ async function waitForRequiredContext(
       bookArc = await getBookArc(seed);
     }
     
+    // If still no arc, actively try to generate it (retry logic)
     if (!bookArc) {
-      log.warn('Timeout waiting for book arc - proceeding anyway', { 
-        seed, 
+      log.warn('Book arc not found after initial wait - attempting direct generation', {
+        seed,
         pageNumber,
         waitedMs: Date.now() - startTime,
       });
+      
+      // Get page 1 content to regenerate arc
+      const page1 = await getPage(seed, 1);
+      if (page1) {
+        for (let attempt = 1; attempt <= ARC_GENERATION_MAX_RETRIES; attempt++) {
+          log.info(`Attempting book arc generation (attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES})`, {
+            seed,
+            pageNumber,
+          });
+          
+          try {
+            const arc = await generateBookArc(seed, page1.content);
+            if (arc) {
+              await saveBookArc(arc);
+              log.info('Book arc generated and saved via retry', { seed });
+              bookArc = arc;
+              break;
+            } else {
+              log.warn(`Book arc generation returned null (attempt ${attempt})`, { seed });
+            }
+          } catch (error) {
+            log.error(`Book arc generation failed (attempt ${attempt})`, {
+              seed,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          
+          // Wait before retry
+          if (attempt < ARC_GENERATION_MAX_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+        }
+      } else {
+        log.error('Cannot generate book arc - page 1 not found!', { seed, pageNumber });
+      }
+    }
+    
+    if (!bookArc) {
+      // This is now a hard failure - we tried everything
+      throw new Error(`Failed to obtain book arc for "${seed}" after ${ARC_GENERATION_MAX_RETRIES} retry attempts. Cannot generate page ${pageNumber} without narrative guidance.`);
     } else {
       log.debug('Book arc now available', { seed, pageNumber });
     }
@@ -109,6 +154,7 @@ async function waitForRequiredContext(
 /**
  * Generator version of waitForRequiredContext that yields waiting events.
  * Used by streaming endpoint to inform the frontend of delays.
+ * If the book arc doesn't exist after initial wait, actively retries generation.
  */
 async function* waitForRequiredContextWithEvents(
   seed: string,
@@ -121,7 +167,9 @@ async function* waitForRequiredContextWithEvents(
   if (pageNumber > 1) {
     let bookArc = await getBookArc(seed);
     
-    while (!bookArc && (Date.now() - startTime) < CONTEXT_MAX_WAIT) {
+    // First, wait a bit for background task to complete (30 seconds)
+    const initialWait = 30000;
+    while (!bookArc && (Date.now() - startTime) < initialWait) {
       if (!yieldedWaiting) {
         log.info('Yielding waiting event for book arc', { seed, pageNumber });
         yield { type: 'waiting', message: 'Preparing narrative context...' };
@@ -138,12 +186,58 @@ async function* waitForRequiredContextWithEvents(
       bookArc = await getBookArc(seed);
     }
     
+    // If still no arc, actively try to generate it (retry logic)
     if (!bookArc) {
-      log.warn('Timeout waiting for book arc (streaming) - proceeding anyway', {
+      log.warn('Book arc not found after initial wait (streaming) - attempting direct generation', {
         seed,
         pageNumber,
         waitedMs: Date.now() - startTime,
       });
+      
+      if (!yieldedWaiting) {
+        yield { type: 'waiting', message: 'Generating narrative context...' };
+        yieldedWaiting = true;
+      }
+      
+      // Get page 1 content to regenerate arc
+      const page1 = await getPage(seed, 1);
+      if (page1) {
+        for (let attempt = 1; attempt <= ARC_GENERATION_MAX_RETRIES; attempt++) {
+          log.info(`Attempting book arc generation (streaming, attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES})`, {
+            seed,
+            pageNumber,
+          });
+          
+          try {
+            const arc = await generateBookArc(seed, page1.content);
+            if (arc) {
+              await saveBookArc(arc);
+              log.info('Book arc generated and saved via retry (streaming)', { seed });
+              bookArc = arc;
+              break;
+            } else {
+              log.warn(`Book arc generation returned null (streaming, attempt ${attempt})`, { seed });
+            }
+          } catch (error) {
+            log.error(`Book arc generation failed (streaming, attempt ${attempt})`, {
+              seed,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+          
+          // Wait before retry
+          if (attempt < ARC_GENERATION_MAX_RETRIES) {
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          }
+        }
+      } else {
+        log.error('Cannot generate book arc - page 1 not found! (streaming)', { seed, pageNumber });
+      }
+    }
+    
+    if (!bookArc) {
+      // This is now a hard failure - we tried everything
+      throw new Error(`Failed to obtain book arc for "${seed}" after ${ARC_GENERATION_MAX_RETRIES} retry attempts. Cannot generate page ${pageNumber} without narrative guidance.`);
     }
   }
 

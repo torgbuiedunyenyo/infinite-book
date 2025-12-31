@@ -89,7 +89,7 @@ Return ONLY the JSON array, no other text.
   try {
     const response = await anthropic.messages.create({
       model: MODEL,
-      max_tokens: 4000,
+      max_tokens: 16000,  // Must be greater than THINKING_BUDGET (8000)
       thinking: {
         type: 'enabled',
         budget_tokens: THINKING_BUDGET,
