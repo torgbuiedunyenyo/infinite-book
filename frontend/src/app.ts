@@ -17,6 +17,7 @@ import {
   updateNavArrows,
 } from './renderer';
 import { initSidebar, onBookSelect, isSidebarOpen } from './sidebar';
+import { shouldShowTour, startTour } from './tour';
 import { PageData, Reference } from './types';
 import { appLogger, apiLogger, cacheLogger } from './logger';
 
@@ -27,6 +28,9 @@ const prefetchInProgress = new Set<string>();
 
 // Track the current page's content for referrer context
 let currentPageContent: string | null = null;
+
+// Track whether first navigation has completed (for tour)
+let firstNavigationComplete = false;
 
 // Stats tracking
 let totalNavigations = 0;
@@ -463,6 +467,17 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
       page,
       duration: `${duration.toFixed(2)}ms`,
     });
+    
+    // Start tour after first successful navigation
+    if (!firstNavigationComplete) {
+      firstNavigationComplete = true;
+      if (shouldShowTour()) {
+        // Slight delay to let content settle and be visible
+        setTimeout(() => {
+          startTour();
+        }, 800);
+      }
+    }
     
     // Prefetch adjacent pages
     log.debug('Starting prefetch of adjacent pages', {
