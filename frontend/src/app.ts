@@ -29,17 +29,29 @@ const log = appLogger;
 const prefetchCache = new Map<string, PageData>();
 const prefetchInProgress = new Set<string>();
 
+// Track pre-generation of pages that don't exist yet (separate from prefetch)
+const preGenerationInProgress = new Set<string>();
+
 // Track the current page's content for referrer context
 let currentPageContent: string | null = null;
 
+// Track current page's references for pre-generation
+let currentPageReferences: Reference[] = [];
+
 // Track whether first navigation has completed (for tour)
 let firstNavigationComplete = false;
+
+// Configuration for aggressive pre-generation
+const PREGENERATE_PAGES_AHEAD = 3;        // How many pages ahead to pre-generate
+const PREGENERATE_REFERENCE_PAGES = 2;    // How many pages to pre-generate for each reference
+const MAX_CONCURRENT_PREGENERATIONS = 3;  // Max concurrent pre-generation requests
 
 // Stats tracking
 let totalNavigations = 0;
 let cacheHits = 0;
 let cacheMisses = 0;
 let prefetchCount = 0;
+let preGenerationCount = 0;
 let streamCount = 0;
 let errorCount = 0;
 
@@ -229,6 +241,8 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
       
       receivedExistingPage = true;  // Mark that we received an existing page
       currentPageContent = data.content;
+      currentPageReferences = data.references;  // Track references for pre-generation
+      references = data.references;
       renderContent(data.content, data.references);
     });
     
@@ -261,6 +275,7 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
       const data = JSON.parse((e as MessageEvent).data);
       references = data.references;
       currentPageContent = streamedContent;
+      currentPageReferences = data.references;  // Track references for pre-generation
       
       apiLogger.info('SSE: Generation complete', {
         seed: data.seed,
@@ -450,6 +465,302 @@ async function prefetchPage(seed: string, page: number): Promise<void> {
   }
 }
 
+// ==================== AGGRESSIVE PRE-GENERATION ====================
+// Pre-generate pages that don't exist yet, so readers rarely see loading screens
+
+/**
+ * Pre-generate a single page in the background.
+ * This triggers actual page generation on the server if the page doesn't exist.
+ * Fire-and-forget: we don't wait for completion.
+ */
+async function preGeneratePage(
+  seed: string, 
+  page: number, 
+  referrer?: ReferrerInfo
+): Promise<PageData | null> {
+  const key = locationKey(seed, page);
+  
+  // Skip if already cached or in progress
+  if (prefetchCache.has(key)) {
+    cacheLogger.debug('Pre-generation skipped: already cached', { key });
+    return prefetchCache.get(key)!;
+  }
+  
+  if (preGenerationInProgress.has(key) || prefetchInProgress.has(key)) {
+    cacheLogger.debug('Pre-generation skipped: already in progress', { key });
+    return null;
+  }
+  
+  // Limit concurrent pre-generations
+  if (preGenerationInProgress.size >= MAX_CONCURRENT_PREGENERATIONS) {
+    cacheLogger.debug('Pre-generation skipped: max concurrent reached', { 
+      key, 
+      currentCount: preGenerationInProgress.size,
+      max: MAX_CONCURRENT_PREGENERATIONS,
+    });
+    return null;
+  }
+  
+  preGenerationInProgress.add(key);
+  preGenerationCount++;
+  
+  cacheLogger.info('Starting PRE-GENERATION (new page)', {
+    seed,
+    page,
+    key,
+    hasReferrer: !!referrer,
+    referrerSeed: referrer?.seed,
+    preGenerationCount,
+    inProgress: preGenerationInProgress.size,
+  });
+  
+  const startTime = performance.now();
+  
+  try {
+    // Build URL with optional referrer context (needed for page 1 of new books)
+    let url = `/api/page?seed=${encodeURIComponent(seed)}&page=${page}`;
+    if (referrer && page === 1) {
+      url += `&referrerSeed=${encodeURIComponent(referrer.seed)}&referrerPage=${referrer.page}`;
+    }
+    
+    const res = await fetch(url);
+    const duration = performance.now() - startTime;
+    
+    if (res.ok) {
+      const data = await res.json() as PageData;
+      prefetchCache.set(key, data);
+      
+      cacheLogger.info('PRE-GENERATION completed', {
+        key,
+        contentLength: data.content.length,
+        isNewDiscovery: data.isNewDiscovery,
+        duration: `${duration.toFixed(2)}ms`,
+        cacheSize: prefetchCache.size,
+      });
+      
+      return data;
+    } else {
+      const errorBody = await res.text();
+      cacheLogger.warn('Pre-generation failed: bad response', {
+        key,
+        status: res.status,
+        error: errorBody.slice(0, 200),
+        duration: `${duration.toFixed(2)}ms`,
+      });
+      return null;
+    }
+  } catch (e) {
+    const duration = performance.now() - startTime;
+    cacheLogger.warn('Pre-generation failed: network error', {
+      key,
+      error: e instanceof Error ? e.message : String(e),
+      duration: `${duration.toFixed(2)}ms`,
+    });
+    return null;
+  } finally {
+    preGenerationInProgress.delete(key);
+  }
+}
+
+/**
+ * Pre-generate upcoming pages in the current book.
+ * Generates pages N+1, N+2, N+3... ahead of the reader.
+ * Pages must be generated sequentially (can't skip), so we chain them.
+ */
+async function preGenerateUpcomingPages(seed: string, currentPage: number): Promise<void> {
+  cacheLogger.info('Starting upstream page pre-generation', {
+    seed,
+    currentPage,
+    pagesAhead: PREGENERATE_PAGES_AHEAD,
+  });
+  
+  // Generate pages sequentially (N+1 must exist before we can generate N+2)
+  for (let offset = 1; offset <= PREGENERATE_PAGES_AHEAD; offset++) {
+    const targetPage = currentPage + offset;
+    const key = locationKey(seed, targetPage);
+    
+    // Check if already cached
+    if (prefetchCache.has(key)) {
+      cacheLogger.debug('Upcoming page already cached, continuing chain', { 
+        seed, 
+        targetPage,
+      });
+      continue;
+    }
+    
+    // Check if page exists on server
+    const exists = await checkPageExists(seed, targetPage);
+    
+    if (exists) {
+      // Page exists but not cached - just prefetch it
+      cacheLogger.debug('Upcoming page exists, prefetching', { seed, targetPage });
+      await prefetchPage(seed, targetPage);
+    } else {
+      // Page doesn't exist - check if we can generate it (previous page must exist)
+      const prevPage = targetPage - 1;
+      const prevKey = locationKey(seed, prevPage);
+      const prevExists = prefetchCache.has(prevKey) || await checkPageExists(seed, prevPage);
+      
+      if (prevExists) {
+        cacheLogger.info('Pre-generating upcoming page', { 
+          seed, 
+          targetPage,
+          offset,
+        });
+        
+        // Generate this page (no referrer needed for pages > 1)
+        const result = await preGeneratePage(seed, targetPage);
+        
+        if (!result) {
+          // Generation failed - stop the chain
+          cacheLogger.debug('Upstream pre-generation chain stopped: generation failed', {
+            seed,
+            targetPage,
+          });
+          break;
+        }
+      } else {
+        // Previous page doesn't exist - can't generate this one yet
+        cacheLogger.debug('Upstream pre-generation chain stopped: previous page missing', {
+          seed,
+          targetPage,
+          prevPage,
+        });
+        break;
+      }
+    }
+  }
+  
+  cacheLogger.info('Upstream page pre-generation complete', {
+    seed,
+    currentPage,
+    cacheSize: prefetchCache.size,
+  });
+}
+
+/**
+ * Pre-generate pages for [[reference]] books found on the current page.
+ * Generates page 1 (with referrer context) and page 2 for each reference.
+ */
+async function preGenerateReferences(
+  references: Reference[],
+  referrerSeed: string,
+  referrerPage: number
+): Promise<void> {
+  if (references.length === 0) {
+    return;
+  }
+  
+  cacheLogger.info('Starting reference pre-generation', {
+    referenceCount: references.length,
+    references: references.map(r => r.seed),
+    referrerSeed,
+    referrerPage,
+  });
+  
+  const referrer: ReferrerInfo = { seed: referrerSeed, page: referrerPage };
+  
+  // Process references - generate page 1 and 2 for each
+  // We do this somewhat in parallel but respect the concurrent limit
+  for (const ref of references) {
+    const refSeed = ref.seed;
+    
+    // Check if page 1 exists
+    const page1Key = locationKey(refSeed, 1);
+    let page1Exists = prefetchCache.has(page1Key);
+    
+    if (!page1Exists) {
+      page1Exists = await checkPageExists(refSeed, 1);
+    }
+    
+    if (!page1Exists) {
+      // Generate page 1 with referrer context
+      cacheLogger.info('Pre-generating reference page 1', {
+        refSeed,
+        referrerSeed,
+        referrerPage,
+      });
+      
+      const page1Result = await preGeneratePage(refSeed, 1, referrer);
+      
+      if (page1Result && PREGENERATE_REFERENCE_PAGES >= 2) {
+        // Page 1 generated successfully - now generate page 2
+        cacheLogger.info('Pre-generating reference page 2', { refSeed });
+        // Fire and forget page 2 - don't await
+        preGeneratePage(refSeed, 2);
+      }
+    } else {
+      // Page 1 exists - check if we should generate page 2
+      if (PREGENERATE_REFERENCE_PAGES >= 2) {
+        const page2Key = locationKey(refSeed, 2);
+        const page2Cached = prefetchCache.has(page2Key);
+        
+        if (!page2Cached) {
+          const page2Exists = await checkPageExists(refSeed, 2);
+          
+          if (!page2Exists) {
+            // Generate page 2
+            cacheLogger.info('Pre-generating reference page 2 (page 1 already exists)', { 
+              refSeed,
+            });
+            // Fire and forget
+            preGeneratePage(refSeed, 2);
+          } else {
+            // Page 2 exists - prefetch it
+            prefetchPage(refSeed, 2);
+          }
+        }
+      }
+      
+      // Also prefetch page 1 if not cached
+      if (!prefetchCache.has(page1Key)) {
+        prefetchPage(refSeed, 1);
+      }
+    }
+  }
+  
+  cacheLogger.info('Reference pre-generation initiated', {
+    referenceCount: references.length,
+    cacheSize: prefetchCache.size,
+    inProgressCount: preGenerationInProgress.size,
+  });
+}
+
+/**
+ * Orchestrate all pre-generation after a successful navigation.
+ * This is called after the page loads to aggressively prepare content.
+ */
+async function triggerAggressivePreGeneration(
+  seed: string,
+  page: number,
+  references: Reference[]
+): Promise<void> {
+  cacheLogger.separator('AGGRESSIVE PRE-GENERATION');
+  
+  cacheLogger.info('Starting aggressive pre-generation', {
+    seed,
+    page,
+    referenceCount: references.length,
+    pagesAhead: PREGENERATE_PAGES_AHEAD,
+    refPagesEach: PREGENERATE_REFERENCE_PAGES,
+  });
+  
+  // Run upcoming pages and reference pre-generation in parallel
+  // (they're independent of each other)
+  await Promise.all([
+    // Pre-generate upcoming pages in current book
+    preGenerateUpcomingPages(seed, page),
+    
+    // Pre-generate reference book pages
+    preGenerateReferences(references, seed, page),
+  ]);
+  
+  cacheLogger.info('Aggressive pre-generation complete', {
+    cacheSize: prefetchCache.size,
+    inProgressCount: preGenerationInProgress.size,
+  });
+}
+
 async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): Promise<void> {
   totalNavigations++;
   
@@ -496,16 +807,18 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
       }
     }
     
-    // Prefetch adjacent pages
-    log.debug('Starting prefetch of adjacent pages', {
-      nextPage: page + 1,
-      prevPage: page > 1 ? page - 1 : 'N/A',
-    });
-    
-    prefetchPage(seed, page + 1);
+    // Prefetch previous page (always fast - already exists)
     if (page > 1) {
       prefetchPage(seed, page - 1);
     }
+    
+    // Trigger aggressive pre-generation of upcoming pages and references
+    // This runs in the background - don't await it
+    triggerAggressivePreGeneration(seed, page, currentPageReferences).catch(e => {
+      log.warn('Aggressive pre-generation failed', {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    });
   } catch (e) {
     const duration = performance.now() - startTime;
     const errorMessage = e instanceof Error ? e.message : String(e);
@@ -640,15 +953,17 @@ function handleKeyDown(e: KeyboardEvent): void {
       window.scrollTo(0, 0);
       
       fetchPageStreaming(prev.seed, prev.page).then(() => {
-        // Prefetch adjacent pages
-        log.debug('Starting prefetch of adjacent pages after backspace', {
-          nextPage: prev.page + 1,
-          prevPage: prev.page > 1 ? prev.page - 1 : 'N/A',
-        });
-        prefetchPage(prev.seed, prev.page + 1);
+        // Prefetch previous page
         if (prev.page > 1) {
           prefetchPage(prev.seed, prev.page - 1);
         }
+        
+        // Trigger aggressive pre-generation
+        triggerAggressivePreGeneration(prev.seed, prev.page, currentPageReferences).catch(e => {
+          log.warn('Aggressive pre-generation failed (backspace)', {
+            error: e instanceof Error ? e.message : String(e),
+          });
+        });
       }).catch((e) => {
         log.error('Navigation via backspace failed', {
           seed: prev.seed,
