@@ -1,4 +1,4 @@
-import { GenerationContext, CanonicalFact, BookSynopsis } from '../types';
+import { GenerationContext, CanonicalFact, BookSynopsis, StoryEvent } from '../types';
 
 export const SYSTEM_PROMPT = `<world_essence>
 World Essence
@@ -140,7 +140,9 @@ In 2025 Oakland, shops sell clef, a mildly relaxing drink popular with future to
 
 At the far edges of the Mystas axis lies unmapped territory. The currents there are fast, turbulent, constantly shifting—not more dangerous in principle, but practically treacherous without reliable maps. Travelers risk becoming lost, carried by currents they can't predict toward regions no one has charted. The PRMTT companies maintain research stations nearby, slowly extending their maps. The company that charts the edges first will control access to whatever lies beyond.
 
-## The Story
+## One Central Narrative (for context, not prescription)
+
+The following describes a well-known story that threads through many books in this library. Not every book features these characters—but they exist in the same world, and their story illustrates how this world feels to live in.
 
 **Jay** works at a shop in 2025 Oakland. He's lived his whole life in an era shaped by future influence—he's used to tourists, to products that don't quite belong, to navigating a world not entirely his own. He's observant. He notices what doesn't add up.
 
@@ -196,6 +198,14 @@ Every page is mid-story. There are no true beginnings and no true endings—only
 - A book framed as a document (memo, form, letter) should read as that document.
 - A book about a place should immerse in sensory detail.
 - Let the seed determine the narrative mode.
+
+**Seed sovereignty.** The seed determines what this book is about.
+- If the seed names a person → follow that person
+- If the seed names a place → immerse in that place (Jay may appear if he'd naturally be there)
+- If the seed names an event → unfold that event
+- If the seed names a concept or document → explore through that lens
+
+The world is larger than any one story. Jay and Tan's narrative is a thread, not the fabric.
 </narrative_principles>
 
 <anti_patterns>
@@ -228,7 +238,7 @@ Generate page content for this system. Write fiction that lives inside this worl
 </task>`;
 
 export function buildPrompt(context: GenerationContext): string {
-  const { canonicalFacts, bookSynopsis, page1Opening } = context;
+  const { canonicalFacts, storyEvents, bookSynopsis, page1Opening } = context;
   const { seed, pageNumber, prevPages, referrerContext } = context;
 
   let prompt = '';
@@ -239,7 +249,9 @@ export function buildPrompt(context: GenerationContext): string {
     prompt += `This is page ${pageNumber} of "${seed}". Here's what this book is about:\n\n`;
     
     if (bookSynopsis) {
-      prompt += `<synopsis>${bookSynopsis.synopsis}</synopsis>\n`;
+      // Prefer updated synopsis if available (keeps pace with story evolution)
+      const currentSynopsis = bookSynopsis.updatedSynopsis || bookSynopsis.synopsis;
+      prompt += `<synopsis>${currentSynopsis}</synopsis>\n`;
       prompt += `<narrative_mode>${bookSynopsis.narrativeMode}</narrative_mode>\n`;
       prompt += `<opening_situation>${bookSynopsis.openingSituation}</opening_situation>\n`;
     }
@@ -249,6 +261,18 @@ export function buildPrompt(context: GenerationContext): string {
     }
     
     prompt += `</book_context>\n\n`;
+  }
+
+  // STORY EVENTS: What has happened in this book so far (prevents repetition)
+  if (storyEvents && storyEvents.length > 0) {
+    prompt += `<what_has_happened>\n`;
+    prompt += `In this book so far:\n`;
+    for (const event of storyEvents) {
+      const marker = event.significance === 'key' ? ' (key)' : '';
+      prompt += `- Page ${event.pageNumber}: ${event.event}${marker}\n`;
+    }
+    prompt += `\nDo not repeat these events. Continue the story forward.\n`;
+    prompt += `</what_has_happened>\n\n`;
   }
 
   // CANONICAL FACTS: Established world details from other books

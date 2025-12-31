@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Page, Reference, CanonicalFact, BookSynopsis } from '../types';
+import { Page, Reference, CanonicalFact, BookSynopsis, StoryEvent } from '../types';
 import { dbLogger } from './logger';
 
 const log = dbLogger;
@@ -456,8 +456,10 @@ function mapRowToSynopsis(row: any): BookSynopsis {
     id: row.id,
     seed: row.seed,
     synopsis: row.synopsis,
+    updatedSynopsis: row.updated_synopsis,
     narrativeMode: row.narrative_mode,
     openingSituation: row.opening_situation,
+    lastUpdatedPage: row.last_updated_page,
     createdAt: row.created_at,
   };
 }
@@ -499,7 +501,7 @@ export async function getBookSynopsis(seed: string): Promise<BookSynopsis | null
   
   const result = await executeQuery<any>(
     'getBookSynopsis',
-    `SELECT id, seed, synopsis, narrative_mode, opening_situation, created_at
+    `SELECT id, seed, synopsis, updated_synopsis, narrative_mode, opening_situation, last_updated_page, created_at
      FROM book_synopses WHERE seed = $1`,
     [seed]
   );
@@ -514,6 +516,7 @@ export async function getBookSynopsis(seed: string): Promise<BookSynopsis | null
   log.debug('Book synopsis retrieved', {
     seed,
     narrativeMode: synopsis.narrativeMode,
+    hasUpdatedSynopsis: !!synopsis.updatedSynopsis,
   });
   
   return synopsis;
@@ -565,4 +568,219 @@ export async function getHighestPageNumber(seed: string): Promise<number | null>
   });
   
   return highest ?? null;
+}
+
+// ==================== STORY EVENTS ====================
+
+function mapRowToEvent(row: any): StoryEvent {
+  return {
+    id: row.id,
+    seed: row.seed,
+    pageNumber: row.page_number,
+    event: row.event,
+    significance: row.significance,
+    entities: row.entities || [],
+    createdAt: row.created_at,
+  };
+}
+
+// Save a story event (extracted from a page)
+export async function saveStoryEvent(event: StoryEvent): Promise<StoryEvent> {
+  log.info('saveStoryEvent called', {
+    seed: event.seed,
+    pageNumber: event.pageNumber,
+    significance: event.significance,
+  });
+
+  const result = await executeQuery<any>(
+    'saveStoryEvent',
+    `INSERT INTO story_events (seed, page_number, event, significance, entities)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (seed, page_number, event) DO UPDATE SET
+       significance = EXCLUDED.significance,
+       entities = EXCLUDED.entities
+     RETURNING id, seed, page_number, event, significance, entities, created_at`,
+    [event.seed, event.pageNumber, event.event, event.significance, JSON.stringify(event.entities)]
+  );
+
+  const savedEvent = mapRowToEvent(result.rows[0]);
+
+  log.info('Story event saved', {
+    id: savedEvent.id,
+    seed: savedEvent.seed,
+    pageNumber: savedEvent.pageNumber,
+    significance: savedEvent.significance,
+  });
+
+  return savedEvent;
+}
+
+/**
+ * Get story events for a book with weighted selection:
+ * - Recent events (last 4 pages) are always included
+ * - Key events from earlier pages fill remaining slots
+ * This prevents repetition while preserving important early plot beats.
+ */
+export async function getBookEventsWeighted(
+  seed: string,
+  beforePage: number,
+  limit: number = 10
+): Promise<StoryEvent[]> {
+  log.info('getBookEventsWeighted called', { seed, beforePage, limit });
+
+  // Two-stage retrieval: recent events + key events from earlier
+  const recentLimit = Math.min(4, limit);
+  const keyLimit = limit - recentLimit;
+
+  const result = await executeQuery<any>(
+    'getBookEventsWeighted',
+    `WITH recent AS (
+        SELECT *, 1 as priority FROM story_events 
+        WHERE seed = $1 AND page_number < $2
+        ORDER BY page_number DESC 
+        LIMIT $3
+    ),
+    key_events AS (
+        SELECT *, 2 as priority FROM story_events 
+        WHERE seed = $1 AND page_number < $2 
+        AND significance = 'key'
+        AND id NOT IN (SELECT id FROM recent)
+        ORDER BY page_number ASC
+        LIMIT $4
+    )
+    SELECT * FROM (
+        SELECT * FROM recent
+        UNION ALL
+        SELECT * FROM key_events
+    ) combined
+    ORDER BY page_number ASC`,
+    [seed, beforePage, recentLimit, keyLimit]
+  );
+
+  const events = result.rows.map(mapRowToEvent);
+
+  log.info('Book events retrieved (weighted)', {
+    seed,
+    beforePage,
+    totalEvents: events.length,
+    recentCount: events.filter(e => e.pageNumber >= beforePage - 4).length,
+    keyCount: events.filter(e => e.significance === 'key').length,
+  });
+
+  return events;
+}
+
+// ==================== SAME-BOOK FACT PRIORITY ====================
+
+/**
+ * Get relevant facts with same-book priority:
+ * - First retrieves facts established by this book (up to half the limit)
+ * - Then fills remaining slots with cross-book facts via FTS
+ * This ensures a book never "forgets" its own established facts.
+ */
+export async function getRelevantFactsWithBookPriority(
+  seed: string,
+  limit: number = 12
+): Promise<CanonicalFact[]> {
+  log.info('getRelevantFactsWithBookPriority called', { seed, limit });
+
+  const sameBookLimit = Math.ceil(limit / 2);  // Up to 6 for same-book
+
+  // Stage 1: Facts from this book
+  const sameBookResult = await executeQuery<any>(
+    'getSameBookFacts',
+    `SELECT id, category, name, fact, source_seeds, created_at, updated_at
+     FROM canonical_facts
+     WHERE source_seeds @> $1::jsonb
+     ORDER BY updated_at DESC
+     LIMIT $2`,
+    [JSON.stringify([seed]), sameBookLimit]
+  );
+
+  const sameBookFacts = sameBookResult.rows.map(mapRowToFact);
+  const sameBookIds = sameBookFacts.map(f => f.id);
+  const remainingSlots = limit - sameBookFacts.length;
+
+  log.debug('Same-book facts retrieved', {
+    seed,
+    count: sameBookFacts.length,
+  });
+
+  if (remainingSlots <= 0) {
+    return sameBookFacts;
+  }
+
+  // Stage 2: Cross-book facts via FTS
+  const searchTerms = seed
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2)
+    .slice(0, 5)
+    .join(' | ');
+
+  if (!searchTerms) {
+    return sameBookFacts;
+  }
+
+  let crossBookFacts: CanonicalFact[] = [];
+
+  if (sameBookIds.length > 0) {
+    const crossBookResult = await executeQuery<any>(
+      'getCrossBookFacts',
+      `SELECT id, category, name, fact, source_seeds, created_at, updated_at,
+              ts_rank(to_tsvector('english', name || ' ' || fact), to_tsquery('english', $1)) as rank
+       FROM canonical_facts
+       WHERE to_tsvector('english', name || ' ' || fact) @@ to_tsquery('english', $1)
+       AND id != ALL($3)
+       ORDER BY rank DESC
+       LIMIT $2`,
+      [searchTerms, remainingSlots, sameBookIds]
+    );
+    crossBookFacts = crossBookResult.rows.map(mapRowToFact);
+  } else {
+    const crossBookResult = await executeQuery<any>(
+      'getCrossBookFacts',
+      `SELECT id, category, name, fact, source_seeds, created_at, updated_at,
+              ts_rank(to_tsvector('english', name || ' ' || fact), to_tsquery('english', $1)) as rank
+       FROM canonical_facts
+       WHERE to_tsvector('english', name || ' ' || fact) @@ to_tsquery('english', $1)
+       ORDER BY rank DESC
+       LIMIT $2`,
+      [searchTerms, remainingSlots]
+    );
+    crossBookFacts = crossBookResult.rows.map(mapRowToFact);
+  }
+
+  log.info('Facts retrieved with book priority', {
+    seed,
+    sameBookCount: sameBookFacts.length,
+    crossBookCount: crossBookFacts.length,
+  });
+
+  return [...sameBookFacts, ...crossBookFacts];
+}
+
+// ==================== SYNOPSIS UPDATES ====================
+
+/**
+ * Update a book's synopsis to reflect current story state.
+ * Called every 5 pages to keep synopsis current.
+ */
+export async function updateSynopsisInDb(
+  seed: string,
+  updatedSynopsis: string,
+  lastUpdatedPage: number
+): Promise<void> {
+  log.info('updateSynopsisInDb called', { seed, lastUpdatedPage });
+
+  await executeQuery(
+    'updateSynopsis',
+    `UPDATE book_synopses 
+     SET updated_synopsis = $2, last_updated_page = $3
+     WHERE seed = $1`,
+    [seed, updatedSynopsis, lastUpdatedPage]
+  );
+
+  log.info('Synopsis updated in database', { seed, lastUpdatedPage });
 }

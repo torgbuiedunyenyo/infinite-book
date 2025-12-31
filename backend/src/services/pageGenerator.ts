@@ -2,7 +2,8 @@ import { Page, Reference, GenerationContext, GetOrGenerateResult, BookSynopsis, 
 import { getPage, getPreviousPages, savePage, getBookSynopsis, getPage1Opening } from './database';
 import { generatePageContent, streamPageContent } from './llm';
 import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
-import { scheduleSynopsisGeneration } from './bookService';
+import { scheduleSynopsisGeneration, scheduleSynopsisUpdate } from './bookService';
+import { scheduleEventExtraction, getEventsForGeneration } from './eventsService';
 import { generatorLogger } from './logger';
 
 const log = generatorLogger;
@@ -328,6 +329,15 @@ async function doGeneratePage(
     factNames: canonicalFacts.map(f => f.name),
   });
 
+  // Fetch story events for narrative continuity (prevents repetition)
+  log.debug(`Request #${genId}: Fetching story events`);
+  const storyEvents = await getEventsForGeneration(seed, pageNumber);
+  
+  log.info(`Request #${genId}: Story events retrieved`, {
+    eventCount: storyEvents.length,
+    events: storyEvents.map(e => ({ page: e.pageNumber, sig: e.significance })),
+  });
+
   // Fetch book synopsis and page 1 opening for narrative anchoring (for pages > 1)
   let bookSynopsis: BookSynopsis | null = null;
   let page1Opening: string | null = null;
@@ -352,6 +362,7 @@ async function doGeneratePage(
     pageNumber,
     prevPages,
     canonicalFacts,
+    storyEvents,
     bookSynopsis: bookSynopsis || undefined,
     page1Opening: page1Opening || undefined,
     // Only include referrer context for page 1 when no previous pages exist
@@ -363,6 +374,7 @@ async function doGeneratePage(
     pageNumber: context.pageNumber,
     prevPagesCount: context.prevPages.length,
     canonicalFactsCount: context.canonicalFacts?.length || 0,
+    storyEventsCount: context.storyEvents?.length || 0,
     hasBookSynopsis: !!context.bookSynopsis,
     hasPage1Opening: !!context.page1Opening,
     includesReferrerContext: !!context.referrerContext,
@@ -421,6 +433,8 @@ async function doGeneratePage(
   // Schedule background extraction tasks (won't block response)
   scheduleFactExtraction(savedPage);
   scheduleSynopsisGeneration(savedPage);  // Generate synopsis for page 1
+  scheduleEventExtraction(savedPage);     // Extract events for continuity
+  scheduleSynopsisUpdate(savedPage);      // Update synopsis every 5 pages
   
   return savedPage;
 }
@@ -545,6 +559,15 @@ export async function* streamOrGetPage(
       factNames: canonicalFacts.map(f => f.name),
     });
 
+    // Fetch story events for narrative continuity (prevents repetition)
+    log.debug(`Stream #${genId}: Fetching story events`);
+    const storyEvents = await getEventsForGeneration(seed, pageNumber);
+    
+    log.info(`Stream #${genId}: Story events retrieved`, {
+      eventCount: storyEvents.length,
+      events: storyEvents.map(e => ({ page: e.pageNumber, sig: e.significance })),
+    });
+
     // Fetch book synopsis and page 1 opening for narrative anchoring (for pages > 1)
     let bookSynopsis: BookSynopsis | null = null;
     let page1Opening: string | null = null;
@@ -569,6 +592,7 @@ export async function* streamOrGetPage(
       pageNumber,
       prevPages,
       canonicalFacts,
+      storyEvents,
       bookSynopsis: bookSynopsis || undefined,
       page1Opening: page1Opening || undefined,
       // Only include referrer context for page 1 when no previous pages exist
@@ -582,6 +606,7 @@ export async function* streamOrGetPage(
       contextSummary: {
         prevPages: context.prevPages.length,
         canonicalFacts: context.canonicalFacts?.length || 0,
+        storyEvents: context.storyEvents?.length || 0,
       },
     });
 
@@ -655,6 +680,8 @@ export async function* streamOrGetPage(
     // Schedule background extraction tasks (won't block response)
     scheduleFactExtraction(savedPage);
     scheduleSynopsisGeneration(savedPage);  // Generate synopsis for page 1
+    scheduleEventExtraction(savedPage);     // Extract events for continuity
+    scheduleSynopsisUpdate(savedPage);      // Update synopsis every 5 pages
     
     // Resolve the promise so any waiters get the result
     resolveGeneration!(savedPage);

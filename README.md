@@ -35,13 +35,17 @@ The future is wealthier than the past. Resources depleted in the future are extr
 
 At the far edges of the Mystas axis, beyond mapped time, something is growing—a region where time's self-healing has reversed, disturbances amplify, and travelers risk becoming temporally incoherent.
 
-### The Story
+### One Central Narrative
+
+The library contains many stories, but one threads through much of it—illustrating how this world feels to live in:
 
 **Jay** works at a shop in 2025 Oakland, in an era shaped by future influence. He meets **Tan**, a wealthy woman from around 2150, when she can't figure out his phone. They fall in love despite an enormous power gap—she has money, status, temporal fluency; he has none of these.
 
-When Tan brings Jay to the future and then disappears, Jay is immediately suspected. He flees across eras, develops temporal senses he was never taught to use, and eventually finds Tan at the Mystas edges where she'd gone on an adventure without considering the consequences for him.
+When Tan brings Jay to the future and then disappears, Jay is immediately suspected. He flees across eras, learns to navigate time through study and necessity, and eventually finds Tan at the Mystas edges where she'd gone on an adventure without considering the consequences for him.
 
 Jay forgives her. But Tan doesn't want to continue the relationship. He returns to Oakland, to his shop—different now, but back where he started.
+
+*Not every book features Jay and Tan—but every book exists in the same world, and their story provides gravitational context.*
 
 ---
 
@@ -118,18 +122,38 @@ This means the library's expansion is driven entirely by the reading experience.
 
 ### Consistency Systems
 
-The library maintains consistency through multiple mechanisms:
+The library maintains consistency through a layered approach:
 
-**Sequential Page Continuity**: When generating page N, the system retrieves up to 2 previous pages (N-2 and N-1) to provide context. The new page continues naturally from where the previous page left off.
+#### World Layer (Cross-Book Coherence)
 
-**Canonical Facts Database**: Established details about characters, places, events, and concepts are extracted and stored. When new pages are created, up to 12 relevant facts are retrieved via full-text search to ensure world consistency.
+**Canonical Facts Database**: Established details about characters, places, events, and concepts are extracted from every page and stored. When new pages are created, up to 12 relevant facts are retrieved to ensure world consistency.
+
+**Same-Book Fact Priority**: Facts are retrieved in two stages—first from the current book (up to 6), then cross-book facts via full-text search (remaining slots). This ensures a book never "forgets" its own established details.
+
+**Seed Sovereignty**: The seed determines what each book is about. A book titled "Meridian Station" focuses on that station; Jay and Tan appear only if they'd naturally be there. The central narrative is context, not prescription.
+
+#### Book Layer (Narrative Identity)
 
 **Book Synopses**: When page 1 of any book is generated, the system extracts a synopsis capturing:
 - What the book is about (2-3 sentences)
 - The narrative mode (character, place, document, event, or concept)
 - The opening situation established on page 1
 
-This synopsis is provided as context for all subsequent pages in that book, ensuring narrative coherence across distant pages (e.g., page 1 and page 20 remain connected to the same story).
+**Rolling Synopsis Updates**: Every 5 pages, the synopsis is updated to reflect where the story is NOW, not just where it started. This prevents storyline drift in longer books.
+
+#### Page Layer (Immediate Context)
+
+**Sequential Page Continuity**: When generating page N, the system retrieves up to 2 previous pages (N-2 and N-1) to provide context. The new page continues naturally from where the previous page left off.
+
+**Story Events**: 1-3 events are extracted from each page (actions, discoveries, decisions). When generating new pages, the system includes:
+- Recent events (last 4 pages)
+- Key events from earlier pages (turning points, revelations)
+
+This prevents repetition (the model won't have Jay give Tan clef on page 2 AND page 8) while preserving important early plot beats.
+
+#### Origin Layer (New Book Context)
+
+**Referrer Context**: When a new book is created by following a [[reference]], the referrer page's content is included so the model understands what the reference means in context.
 
 ---
 
@@ -180,9 +204,19 @@ CanonicalFact {
 
 BookSynopsis {
   seed: string           // The book identifier
-  synopsis: string       // 2-3 sentence summary
+  synopsis: string       // 2-3 sentence summary (from page 1)
+  updated_synopsis: string // Current synopsis (updated every 5 pages)
   narrative_mode: string // 'character', 'place', 'document', 'event', 'concept'
   opening_situation: string // One-sentence scene description
+  last_updated_page: integer // When synopsis was last updated
+}
+
+StoryEvent {
+  seed: string           // The book identifier
+  page_number: integer   // Which page this event occurred on
+  event: string          // One-sentence description of what happened
+  significance: string   // 'key' (turning point) or 'minor' (ongoing action)
+  entities: array        // Character/place names involved
 }
 ```
 
@@ -194,13 +228,18 @@ When a page is requested that doesn't exist:
    - For page N > 1: verify page N-1 exists
    - For page 1 of non-canonical seeds: verify referrer contains [[this seed]] as a reference
 2. Retrieve up to 2 previous pages for continuity context
-3. Retrieve relevant canonical facts for world consistency (up to 12 via full-text search)
-4. For pages > 1: retrieve book synopsis and page 1 opening for narrative anchoring
-5. Build a structured prompt with world essence, context, and guidelines
-6. Generate via Claude Opus 4.5 with extended thinking
-7. Extract opening, closing, and references
-8. Store permanently
-9. Background: extract canonical facts and (for page 1) generate book synopsis
+3. Retrieve relevant canonical facts (same-book first, then cross-book via FTS, up to 12 total)
+4. Retrieve story events (recent events + key events from earlier, up to 10 total)
+5. For pages > 1: retrieve book synopsis (preferring updated synopsis) and page 1 opening
+6. Build a structured prompt with world essence, context, and guidelines
+7. Generate via Claude Opus 4.5 with extended thinking
+8. Extract opening, closing, and references
+9. Store permanently
+10. Background tasks:
+    - Extract canonical facts
+    - Extract story events (1-3 per page)
+    - Generate book synopsis (page 1 only)
+    - Update synopsis (every 5 pages)
 
 ### API
 
@@ -251,7 +290,8 @@ library-of-babel/
 │   │   │   └── pages.ts          # API handlers
 │   │   ├── services/
 │   │   │   ├── database.ts       # PostgreSQL operations
-│   │   │   ├── bookService.ts    # Book synopsis generation
+│   │   │   ├── bookService.ts    # Book synopsis generation & updates
+│   │   │   ├── eventsService.ts  # Story event extraction
 │   │   │   ├── factsService.ts   # Canonical facts extraction
 │   │   │   ├── llm.ts            # Claude API integration
 │   │   │   ├── logger.ts         # Structured logging
@@ -276,7 +316,9 @@ library-of-babel/
 │   └── migrations/
 │       ├── 001_add_canonical_facts.sql
 │       ├── 002_add_book_synopses.sql
-│       └── 003_remove_citations.sql
+│       ├── 003_remove_citations.sql
+│       ├── 004_add_story_events.sql
+│       └── 005_add_synopsis_updates.sql
 └── README.md
 ```
 
@@ -310,6 +352,8 @@ psql $DATABASE_URL -f database/schema.sql
 psql $DATABASE_URL -f database/migrations/001_add_canonical_facts.sql
 psql $DATABASE_URL -f database/migrations/002_add_book_synopses.sql
 psql $DATABASE_URL -f database/migrations/003_remove_citations.sql
+psql $DATABASE_URL -f database/migrations/004_add_story_events.sql
+psql $DATABASE_URL -f database/migrations/005_add_synopsis_updates.sql
 
 # 5. Start development servers
 cd backend && npm run dev      # Port 3000

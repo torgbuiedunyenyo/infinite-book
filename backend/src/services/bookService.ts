@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Page, BookSynopsis } from '../types';
-import { saveBookSynopsis } from './database';
+import { saveBookSynopsis, getBookSynopsis, updateSynopsisInDb, getBookEventsWeighted } from './database';
 import { createLogger } from './logger';
 
 const log = createLogger('book');
@@ -146,5 +146,101 @@ export function scheduleSynopsisGeneration(page: Page): void {
       });
     }
   });
+}
+
+/**
+ * Update a book's synopsis to reflect current story state.
+ * Uses recent events to inform what the story is about NOW, not just what it started as.
+ */
+export async function updateBookSynopsis(seed: string, currentPage: number): Promise<void> {
+  log.info('Updating book synopsis', { seed, currentPage });
+
+  // Get original synopsis
+  const original = await getBookSynopsis(seed);
+  if (!original) {
+    log.warn('No original synopsis found for update', { seed });
+    return;
+  }
+
+  // Get recent events for context
+  const events = await getBookEventsWeighted(seed, currentPage + 1, 8);
+  if (events.length === 0) {
+    log.debug('No events to inform synopsis update', { seed });
+    return;
+  }
+
+  const eventsText = events
+    .map(e => `- Page ${e.pageNumber}: ${e.event}`)
+    .join('\n');
+
+  const prompt = `<task>
+This book's original synopsis (from page 1):
+${original.synopsis}
+
+Original narrative mode: ${original.narrativeMode}
+Original opening situation: ${original.openingSituation}
+
+Events that have happened (pages 1-${currentPage}):
+${eventsText}
+
+Write an updated 2-3 sentence synopsis reflecting where the story is NOW.
+Focus on current situation and momentum, not history.
+Keep the same narrative mode (${original.narrativeMode}).
+
+Return ONLY the synopsis text, no other commentary.
+</task>`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: SYNOPSIS_MODEL,
+      max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const textBlock = response.content.find(block => block.type === 'text');
+    if (!textBlock || textBlock.type !== 'text') {
+      log.warn('No text in synopsis update response');
+      return;
+    }
+
+    const updatedSynopsis = textBlock.text.trim();
+
+    await updateSynopsisInDb(seed, updatedSynopsis, currentPage);
+
+    log.info('Synopsis updated', {
+      seed,
+      currentPage,
+      updatedLength: updatedSynopsis.length,
+    });
+  } catch (error) {
+    log.error('Synopsis update failed', {
+      seed,
+      currentPage,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
+ * Schedule synopsis update to run asynchronously after page generation.
+ * Updates every 5 pages (pages 5, 10, 15, 20...) to keep synopsis current with story evolution.
+ */
+export function scheduleSynopsisUpdate(page: Page): void {
+  // Update at pages 5, 10, 15, 20...
+  if (page.pageNumber > 1 && page.pageNumber % 5 === 0) {
+    log.info('Scheduling synopsis update', { seed: page.seed, pageNumber: page.pageNumber });
+
+    setImmediate(async () => {
+      try {
+        await updateBookSynopsis(page.seed, page.pageNumber);
+      } catch (error) {
+        log.error('Background synopsis update failed', {
+          seed: page.seed,
+          pageNumber: page.pageNumber,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  }
 }
 

@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CanonicalFact, Page } from '../types';
-import { saveCanonicalFact, searchRelevantFacts } from './database';
+import { saveCanonicalFact, getRelevantFactsWithBookPriority } from './database';
 import { factsLogger } from './logger';
 
 const log = factsLogger;
@@ -156,7 +156,8 @@ Return ONLY the JSON array, no other text.
 
 /**
  * Get relevant canonical facts for generating a new page.
- * Uses full-text search to find facts related to the seed.
+ * Uses same-book priority: facts from this book first, then cross-book facts via FTS.
+ * This ensures a book never "forgets" its own established facts.
  */
 export async function getRelevantFactsForGeneration(
   seed: string,
@@ -167,10 +168,10 @@ export async function getRelevantFactsForGeneration(
     hasExistingContent: !!existingPageContent,
   });
 
-  // Search for facts relevant to the seed
-  const facts = await searchRelevantFacts(seed, 12);
+  // Use priority retrieval: same-book facts first, then cross-book via FTS
+  const facts = await getRelevantFactsWithBookPriority(seed, 12);
 
-  log.info('Relevant facts retrieved', {
+  log.info('Relevant facts retrieved with book priority', {
     seed,
     totalFacts: facts.length,
     factNames: facts.map(f => f.name),

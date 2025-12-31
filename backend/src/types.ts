@@ -28,8 +28,20 @@ export interface BookSynopsis {
   id?: number;
   seed: string;
   synopsis: string;           // 2-3 sentence summary of what this book is about
+  updatedSynopsis?: string;   // Synopsis updated to reflect current story state
   narrativeMode: string;      // 'character', 'place', 'document', 'event', 'concept'
   openingSituation: string;   // One sentence describing the scene on page 1
+  lastUpdatedPage?: number;   // Page number when synopsis was last updated
+  createdAt?: Date;
+}
+
+export interface StoryEvent {
+  id?: number;
+  seed: string;
+  pageNumber: number;
+  event: string;
+  significance: 'key' | 'minor';
+  entities: string[];
   createdAt?: Date;
 }
 
@@ -43,6 +55,7 @@ export interface GenerationContext {
     content: string;
   };
   canonicalFacts?: CanonicalFact[];  // Relevant facts for consistency
+  storyEvents?: StoryEvent[];        // What has happened in this book (prevents repetition)
   bookSynopsis?: BookSynopsis;       // Book-level context for narrative coherence
   page1Opening?: string;             // Opening of page 1 for anchoring
 }
