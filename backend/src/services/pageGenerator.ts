@@ -1,9 +1,8 @@
-import { Page, Reference, GenerationContext, GetOrGenerateResult, BookSynopsis, SequentialAccessError, InvalidSeedAccessError } from '../types';
-import { getPage, getPreviousPages, savePage, getBookSynopsis, getPage1Opening } from './database';
+import { Page, Reference, GenerationContext, GetOrGenerateResult, SequentialAccessError, InvalidSeedAccessError } from '../types';
+import { getPage, getPreviousPages, savePage } from './database';
 import { generatePageContent, streamPageContent } from './llm';
 import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
-import { scheduleSynopsisGeneration, scheduleSynopsisUpdate } from './bookService';
-import { scheduleEventExtraction, getEventsForGeneration } from './eventsService';
+import { getContextForGeneration, scheduleArcGeneration, scheduleChunkAndMomentum } from './summaryService';
 import { generatorLogger } from './logger';
 
 const log = generatorLogger;
@@ -39,11 +38,25 @@ function extractOpening(content: string): string {
     return content;
   }
   
+  // Take first 60 words and find a good sentence boundary
   const first60 = words.slice(0, 60).join(' ');
-  const sentenceEnd = first60.search(/[.!?]\s/);
+  
+  // Look for sentence end that's not too early (at least 30 chars in)
+  // This fixes the bug where only 4-5 words were captured
+  let sentenceEnd = -1;
+  const minPosition = 100; // Require at least 100 chars before cutting
+  
+  for (let i = minPosition; i < first60.length - 10; i++) {
+    if (first60[i] === '.' || first60[i] === '!' || first60[i] === '?') {
+      if (i + 1 < first60.length && first60[i + 1] === ' ') {
+        sentenceEnd = i;
+        break;
+      }
+    }
+  }
   
   let opening: string;
-  if (sentenceEnd > 0 && sentenceEnd < first60.length - 10) {
+  if (sentenceEnd > 0) {
     opening = first60.slice(0, sentenceEnd + 1);
     log.debug('Opening extracted at sentence boundary', {
       sentenceEndPosition: sentenceEnd,
@@ -306,7 +319,7 @@ async function doGeneratePage(
   referrerContext?: ReferrerContext
 ): Promise<Page> {
   
-  // Fetch previous pages for context
+  // Fetch previous pages for context (now 3 pages instead of 2)
   log.debug(`Request #${genId}: Fetching previous pages for continuity`);
   const prevPages = await getPreviousPages(seed, pageNumber);
   
@@ -319,42 +332,23 @@ async function doGeneratePage(
 
   // Fetch relevant canonical facts for world consistency
   log.debug(`Request #${genId}: Fetching relevant canonical facts`);
-  const existingContent = prevPages.length > 0 
-    ? prevPages.map(p => p.content).join(' ')
-    : undefined;
-  const canonicalFacts = await getRelevantFactsForGeneration(seed, existingContent);
+  const canonicalFacts = await getRelevantFactsForGeneration(seed);
   
   log.info(`Request #${genId}: Canonical facts retrieved`, {
     factCount: canonicalFacts.length,
     factNames: canonicalFacts.map(f => f.name),
   });
 
-  // Fetch story events for narrative continuity (prevents repetition)
-  log.debug(`Request #${genId}: Fetching story events`);
-  const storyEvents = await getEventsForGeneration(seed, pageNumber);
+  // Fetch hierarchical summaries (bookArc, runningSummary, chunkSummaries)
+  log.debug(`Request #${genId}: Fetching hierarchical context`);
+  const { bookArc, runningSummary, chunkSummaries } = await getContextForGeneration(seed, pageNumber);
   
-  log.info(`Request #${genId}: Story events retrieved`, {
-    eventCount: storyEvents.length,
-    events: storyEvents.map(e => ({ page: e.pageNumber, sig: e.significance })),
+  log.info(`Request #${genId}: Hierarchical context retrieved`, {
+    hasBookArc: !!bookArc,
+    hasRunningSummary: !!runningSummary,
+    chunkCount: chunkSummaries.length,
+    narrativeMode: bookArc?.narrativeMode,
   });
-
-  // Fetch book synopsis and page 1 opening for narrative anchoring (for pages > 1)
-  let bookSynopsis: BookSynopsis | null = null;
-  let page1Opening: string | null = null;
-  
-  if (pageNumber > 1) {
-    log.debug(`Request #${genId}: Fetching book context for narrative coherence`);
-    [bookSynopsis, page1Opening] = await Promise.all([
-      getBookSynopsis(seed),
-      getPage1Opening(seed),
-    ]);
-    
-    log.info(`Request #${genId}: Book context retrieved`, {
-      hasSynopsis: !!bookSynopsis,
-      hasPage1Opening: !!page1Opening,
-      narrativeMode: bookSynopsis?.narrativeMode,
-    });
-  }
 
   // Build generation context
   const context: GenerationContext = {
@@ -362,9 +356,9 @@ async function doGeneratePage(
     pageNumber,
     prevPages,
     canonicalFacts,
-    storyEvents,
-    bookSynopsis: bookSynopsis || undefined,
-    page1Opening: page1Opening || undefined,
+    bookArc: bookArc || undefined,
+    runningSummary: runningSummary || undefined,
+    chunkSummaries,
     // Only include referrer context for page 1 when no previous pages exist
     referrerContext: pageNumber === 1 && prevPages.length === 0 ? referrerContext : undefined,
   };
@@ -374,9 +368,9 @@ async function doGeneratePage(
     pageNumber: context.pageNumber,
     prevPagesCount: context.prevPages.length,
     canonicalFactsCount: context.canonicalFacts?.length || 0,
-    storyEventsCount: context.storyEvents?.length || 0,
-    hasBookSynopsis: !!context.bookSynopsis,
-    hasPage1Opening: !!context.page1Opening,
+    hasBookArc: !!context.bookArc,
+    hasRunningSummary: !!context.runningSummary,
+    chunkSummaryCount: context.chunkSummaries?.length || 0,
     includesReferrerContext: !!context.referrerContext,
   });
 
@@ -432,9 +426,8 @@ async function doGeneratePage(
   
   // Schedule background extraction tasks (won't block response)
   scheduleFactExtraction(savedPage);
-  scheduleSynopsisGeneration(savedPage);  // Generate synopsis for page 1
-  scheduleEventExtraction(savedPage);     // Extract events for continuity
-  scheduleSynopsisUpdate(savedPage);      // Update synopsis every 5 pages
+  scheduleArcGeneration(savedPage);        // Generate book arc for page 1
+  scheduleChunkAndMomentum(savedPage);     // Generate chunk summary and update momentum at pages 5, 10, 15...
   
   return savedPage;
 }
@@ -536,7 +529,7 @@ export async function* streamOrGetPage(
   });
 
   try {
-    // Fetch previous pages for context
+    // Fetch previous pages for context (now 3 pages instead of 2)
     log.debug(`Stream #${genId}: Fetching previous pages for continuity`);
     const prevPages = await getPreviousPages(seed, pageNumber);
     
@@ -549,42 +542,23 @@ export async function* streamOrGetPage(
 
     // Fetch relevant canonical facts for world consistency
     log.debug(`Stream #${genId}: Fetching relevant canonical facts`);
-    const existingContent = prevPages.length > 0 
-      ? prevPages.map(p => p.content).join(' ')
-      : undefined;
-    const canonicalFacts = await getRelevantFactsForGeneration(seed, existingContent);
+    const canonicalFacts = await getRelevantFactsForGeneration(seed);
     
     log.info(`Stream #${genId}: Canonical facts retrieved`, {
       factCount: canonicalFacts.length,
       factNames: canonicalFacts.map(f => f.name),
     });
 
-    // Fetch story events for narrative continuity (prevents repetition)
-    log.debug(`Stream #${genId}: Fetching story events`);
-    const storyEvents = await getEventsForGeneration(seed, pageNumber);
+    // Fetch hierarchical summaries (bookArc, runningSummary, chunkSummaries)
+    log.debug(`Stream #${genId}: Fetching hierarchical context`);
+    const { bookArc, runningSummary, chunkSummaries } = await getContextForGeneration(seed, pageNumber);
     
-    log.info(`Stream #${genId}: Story events retrieved`, {
-      eventCount: storyEvents.length,
-      events: storyEvents.map(e => ({ page: e.pageNumber, sig: e.significance })),
+    log.info(`Stream #${genId}: Hierarchical context retrieved`, {
+      hasBookArc: !!bookArc,
+      hasRunningSummary: !!runningSummary,
+      chunkCount: chunkSummaries.length,
+      narrativeMode: bookArc?.narrativeMode,
     });
-
-    // Fetch book synopsis and page 1 opening for narrative anchoring (for pages > 1)
-    let bookSynopsis: BookSynopsis | null = null;
-    let page1Opening: string | null = null;
-    
-    if (pageNumber > 1) {
-      log.debug(`Stream #${genId}: Fetching book context for narrative coherence`);
-      [bookSynopsis, page1Opening] = await Promise.all([
-        getBookSynopsis(seed),
-        getPage1Opening(seed),
-      ]);
-      
-      log.info(`Stream #${genId}: Book context retrieved`, {
-        hasSynopsis: !!bookSynopsis,
-        hasPage1Opening: !!page1Opening,
-        narrativeMode: bookSynopsis?.narrativeMode,
-      });
-    }
 
     // Build generation context
     const context: GenerationContext = {
@@ -592,21 +566,21 @@ export async function* streamOrGetPage(
       pageNumber,
       prevPages,
       canonicalFacts,
-      storyEvents,
-      bookSynopsis: bookSynopsis || undefined,
-      page1Opening: page1Opening || undefined,
+      bookArc: bookArc || undefined,
+      runningSummary: runningSummary || undefined,
+      chunkSummaries,
       // Only include referrer context for page 1 when no previous pages exist
       referrerContext: pageNumber === 1 && prevPages.length === 0 ? referrerContext : undefined,
     };
     
     log.debug(`Stream #${genId}: Generation context prepared for streaming`, {
       includesReferrerContext: !!context.referrerContext,
-      hasBookSynopsis: !!context.bookSynopsis,
-      hasPage1Opening: !!context.page1Opening,
+      hasBookArc: !!context.bookArc,
+      hasRunningSummary: !!context.runningSummary,
       contextSummary: {
         prevPages: context.prevPages.length,
         canonicalFacts: context.canonicalFacts?.length || 0,
-        storyEvents: context.storyEvents?.length || 0,
+        chunkSummaries: context.chunkSummaries?.length || 0,
       },
     });
 
@@ -679,9 +653,8 @@ export async function* streamOrGetPage(
     
     // Schedule background extraction tasks (won't block response)
     scheduleFactExtraction(savedPage);
-    scheduleSynopsisGeneration(savedPage);  // Generate synopsis for page 1
-    scheduleEventExtraction(savedPage);     // Extract events for continuity
-    scheduleSynopsisUpdate(savedPage);      // Update synopsis every 5 pages
+    scheduleArcGeneration(savedPage);        // Generate book arc for page 1
+    scheduleChunkAndMomentum(savedPage);     // Generate chunk summary and update momentum at pages 5, 10, 15...
     
     // Resolve the promise so any waiters get the result
     resolveGeneration!(savedPage);

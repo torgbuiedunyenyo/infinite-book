@@ -1,6 +1,12 @@
-import { GenerationContext, CanonicalFact, BookSynopsis, StoryEvent } from '../types';
+import { GenerationContext, CanonicalFact, BookArc, ChunkSummary, RunningSummary } from '../types';
 
-export const SYSTEM_PROMPT = `<world_essence>
+// ==================== MODULAR PROMPT COMPONENTS ====================
+
+/**
+ * WORLD_ESSENCE: The complete world document.
+ * Used by page generation AND extraction services to maintain consistency.
+ */
+export const WORLD_ESSENCE = `<world_essence>
 World Essence
 
 ## The Nature of Time
@@ -161,7 +167,104 @@ He finds Tan. She'd gone to the Mystas edges on an adventure, curious about the 
 Jay forgives her. But Tan doesn't want to continue the relationship. The work of truly seeing someone from a different era, of accounting for the power between them—it's not something she's willing to do.
 
 Jay returns to 2025 Oakland, to his shop. He's traveled further than most people from his era ever will. He's survived. But he's back where he started, selling clef to tourists, watching them come and go.
-</world_essence>
+</world_essence>`;
+
+/**
+ * NARRATIVE_CONTEXT: Comprehensive guidance for correctly interpreting fiction in this world.
+ * Used by extraction services to avoid misreading relationships, power dynamics, and terminology.
+ */
+export const NARRATIVE_CONTEXT = `<narrative_context>
+## Narrative Style
+
+This fiction follows show-don't-tell principles throughout:
+- Characters live in this world; they don't explain its rules
+- Relationships are shown through behavior, not stated directly
+- Power dynamics are implied through action, deference, and small details
+- World-specific terms appear naturally without definition
+- The narrator doesn't editorialize or explain social context
+
+When extracting facts, infer from action and behavior, not from what would make sense in our world.
+
+## Interpreting Relationships Across Eras
+
+Power imbalances between people from different times are ECONOMIC and SOCIAL, not familial:
+- A future person has wealth, technology access, legal status, and cultural fluency
+- A past person lacks these things and may depend on the future person to navigate
+- This creates dynamics that can LOOK like parent/child but are NOT
+- Deference, dependence, guidance, and protection do not imply family relationships
+- Romantic and friendship relationships across eras are common but attract social suspicion
+- Observers in-world assume cross-era relationships are transactional (economic, sexual, exploitative)
+
+When you see one character helping, guiding, or having authority over another:
+- First consider: are they from different eras?
+- If yes: the dynamic is likely economic/social power, not family
+- Age differences don't indicate family—future people live longer
+- Someone "taking care of" a past person is likely a sponsor, employer, partner, or friend
+
+## Power Dynamics to Recognize
+
+**Future person + past person:** The future person has structural power regardless of personality. They control documentation, money, navigation, and social access. Even kind future people benefit from and perpetuate this system.
+
+**Company employees:** PRMTT companies control temporal maps and travel. Their employees have access others don't. Company politics involve map access, route control, and territorial disputes.
+
+**The underground:** Networks exist for undocumented past people in the future—forgers, fixers, guides. These aren't villains; they're service providers for people the system excludes.
+
+**Preservation zones:** Past eras kept artificially "pristine" for tourism. Residents are effectively trapped in managed poverty. Development is restricted. Leaving is difficult.
+
+## Terminology Reference
+
+- **Clef**: A mildly relaxing drink, popular with future tourists, sold in 2025 Oakland
+- **PRMTTs**: Prostheses for Rapid Movement Through Time—compact devices for time travel
+- **The edges / Mystas edges**: Unmapped territory at the far reaches of the Mystas temporal axis
+- **The currents**: Temporal flows that affect navigation; mapped like ocean currents
+- **Neural interfaces**: Future technology replacing phones/devices; operated by thought
+- **Visa / documentation**: Legal permission for past people to be in future times
+- **The underground**: Networks helping undocumented travelers navigate the future
+
+## Character Archetypes in This World
+
+- **Past locals**: People living in eras shaped by future influence. They're used to tourists, anachronistic products, economic distortion. Some serve tourists; some resent them; most just live their lives.
+- **Future tourists**: Wealthy visitors treating the past as entertainment. Range from oblivious to actively exploitative.
+- **Company people**: PRMTT employees with map access and institutional power. Corporate culture varies by company.
+- **Underground operators**: Fixers, forgers, guides. Morally ambiguous service providers.
+- **Edge researchers**: People exploring unmapped Mystas territory. Scientists, adventurers, company scouts.
+- **Cross-era partners**: People in relationships across temporal divides. Face social suspicion and structural challenges.
+
+## Known Characters (for reference, not prescription)
+
+When these characters appear, these facts are established:
+
+**Jay**: Works at a shop in 2025 Oakland. From the past. Observant, adaptable, has traveled more than most past people. His shop sells clef among other things.
+
+**Tan**: From the future (~2150). Daughter of a PRMTT company executive. Wealthy, well-traveled. Has the casual assumption of access that comes with privilege.
+
+**Jay and Tan**: Romantic partners who met when Tan couldn't figure out Jay's phone (she's used to neural interfaces). Their relationship illustrates cross-era dynamics—she has structural power he lacks. They are NOT related. Any deference or dependence is due to era/wealth dynamics, not family.
+
+Most books will not feature Jay and Tan directly. They are examples of how this world works, not the only story.
+
+## Common Extraction Errors to Avoid
+
+- Misreading cross-era power dynamics as family relationships
+- Assuming deference means parent/child rather than economic dependence
+- Missing that "taking care of someone" can mean sponsorship, not parenting
+- Confusing future technology references with magic or supernatural elements
+- Reading temporal navigation as mystical rather than practical/technological
+- Assuming unnamed characters from different eras meeting are related
+</narrative_context>`;
+
+/**
+ * EXTRACTION_SYSTEM: System prompt for all extraction/summary tasks.
+ * Combines world essence with narrative context for correct interpretation.
+ */
+export const EXTRACTION_SYSTEM = `${WORLD_ESSENCE}
+
+${NARRATIVE_CONTEXT}`;
+
+/**
+ * SYSTEM_PROMPT: Full system prompt for page generation.
+ * This is the creative writing prompt, distinct from extraction prompts.
+ */
+export const SYSTEM_PROMPT = `${WORLD_ESSENCE}
 
 <library_system>
 This is a page generation system for an interconnected library of books, all set within the world above. You generate individual pages on demand. Once a page is generated, it is stored permanently and returned unchanged on all future requests—consistency is critical.
@@ -237,82 +340,97 @@ References should feel natural within the prose—things characters would actual
 Generate page content for this system. Write fiction that lives inside this world.
 </task>`;
 
+// ==================== PROMPT BUILDER ====================
+
+/**
+ * Build the user prompt for page generation with the new hierarchical context system.
+ * 
+ * Context hierarchy:
+ * 1. Book Narrative Arc - the story's DNA (replaces synopsis/opening_situation/page_1_opening)
+ * 2. Running Summary - current momentum (new)
+ * 3. Chunk Summaries - story history in 5-page segments (replaces story events)
+ * 4. Recent Pages - full text of N-3, N-2, N-1 (expanded from 2 to 3)
+ * 5. Canonical Facts - cross-book world consistency
+ */
 export function buildPrompt(context: GenerationContext): string {
-  const { canonicalFacts, storyEvents, bookSynopsis, page1Opening } = context;
+  const { bookArc, runningSummary, chunkSummaries, canonicalFacts } = context;
   const { seed, pageNumber, prevPages, referrerContext } = context;
 
   let prompt = '';
 
-  // BOOK CONTEXT: Synopsis and page 1 opening for narrative anchoring (pages > 1)
-  if (pageNumber > 1 && (bookSynopsis || page1Opening)) {
-    prompt += `<book_context>\n`;
-    prompt += `This is page ${pageNumber} of "${seed}". Here's what this book is about:\n\n`;
-    
-    if (bookSynopsis) {
-      // Prefer updated synopsis if available (keeps pace with story evolution)
-      const currentSynopsis = bookSynopsis.updatedSynopsis || bookSynopsis.synopsis;
-      prompt += `<synopsis>${currentSynopsis}</synopsis>\n`;
-      prompt += `<narrative_mode>${bookSynopsis.narrativeMode}</narrative_mode>\n`;
-      prompt += `<opening_situation>${bookSynopsis.openingSituation}</opening_situation>\n`;
-    }
-    
-    if (page1Opening) {
-      prompt += `<page_1_opening>\n${page1Opening}\n</page_1_opening>\n`;
-    }
-    
-    prompt += `</book_context>\n\n`;
+  // ==================== BOOK NARRATIVE ARC ====================
+  // Rich 150-250 word document about the book's identity (pages > 1)
+  if (pageNumber > 1 && bookArc) {
+    prompt += `<book_narrative_arc>\n`;
+    prompt += `This is page ${pageNumber} of "${seed}". Here is this book's narrative DNA:\n\n`;
+    prompt += `${bookArc.narrativeArc}\n\n`;
+    prompt += `<narrative_mode>${bookArc.narrativeMode}</narrative_mode>\n`;
+    prompt += `</book_narrative_arc>\n\n`;
   }
 
-  // STORY EVENTS: What has happened in this book so far (prevents repetition)
-  if (storyEvents && storyEvents.length > 0) {
-    prompt += `<what_has_happened>\n`;
-    prompt += `In this book so far:\n`;
-    for (const event of storyEvents) {
-      const marker = event.significance === 'key' ? ' (key)' : '';
-      prompt += `- Page ${event.pageNumber}: ${event.event}${marker}\n`;
-    }
-    prompt += `\nDo not repeat these events. Continue the story forward.\n`;
-    prompt += `</what_has_happened>\n\n`;
+  // ==================== STORY MOMENTUM ====================
+  // Current state and tensions (pages > 5)
+  if (runningSummary) {
+    prompt += `<story_momentum>\n`;
+    prompt += `Where the story is NOW (after page ${runningSummary.lastUpdatedPage}):\n\n`;
+    prompt += `${runningSummary.momentum}\n`;
+    prompt += `</story_momentum>\n\n`;
   }
 
-  // CANONICAL FACTS: Established world details from other books
+  // ==================== STORY HISTORY (CHUNK SUMMARIES) ====================
+  // Complete coverage of story in 5-page chunks - no gaps!
+  if (chunkSummaries && chunkSummaries.length > 0) {
+    prompt += `<story_history>\n`;
+    prompt += `What has happened in this book (do not repeat these events):\n\n`;
+    for (const chunk of chunkSummaries) {
+      prompt += `<chunk pages="${chunk.chunkStart}-${chunk.chunkEnd}">\n`;
+      prompt += `${chunk.summary}\n`;
+      prompt += `</chunk>\n\n`;
+    }
+    prompt += `</story_history>\n\n`;
+  }
+
+  // ==================== RECENT PAGES (FULL TEXT) ====================
+  // 3 previous pages for immediate continuity (expanded from 2)
+  if (prevPages.length > 0) {
+    prompt += `<recent_pages>\n`;
+    prompt += `Full text of recent pages for continuity:\n\n`;
+    for (const page of prevPages) {
+      prompt += `<page number="${page.pageNumber}">\n${page.content}\n</page>\n\n`;
+    }
+    prompt += `</recent_pages>\n\n`;
+  } else if (pageNumber === 1 && referrerContext) {
+    // Page 1 via reference click - include referrer context
+    prompt += `<referrer_context>\n`;
+    prompt += `The reader arrived by clicking [[${seed}]] in this page:\n\n`;
+    prompt += `<referrer_seed>${referrerContext.seed}</referrer_seed>\n`;
+    prompt += `<referrer_page number="${referrerContext.pageNumber}">\n${referrerContext.content}\n</referrer_page>\n`;
+    prompt += `</referrer_context>\n\n`;
+  }
+
+  // ==================== CANONICAL FACTS ====================
+  // Cross-book world consistency
   if (canonicalFacts && canonicalFacts.length > 0) {
     prompt += `<established_facts>\n`;
-    prompt += `These details have been established in other books in the library. Maintain consistency with them:\n\n`;
+    prompt += `These details have been established in other books. Maintain consistency:\n\n`;
     for (const fact of canonicalFacts) {
       prompt += `- ${fact.name}: ${fact.fact}\n`;
     }
     prompt += `</established_facts>\n\n`;
   }
 
-  // EXISTING PAGES: Provide previous pages for continuity
-  if (prevPages.length > 0) {
-    prompt += `<existing_pages>\n`;
-    
-    for (const page of prevPages) {
-      prompt += `<page number="${page.pageNumber}">\n${page.content}\n</page>\n\n`;
-    }
-    
-    prompt += `</existing_pages>\n\n`;
-  } else if (pageNumber === 1 && referrerContext) {
-    prompt += `<referrer_context>\n`;
-    prompt += `<referrer_seed>${referrerContext.seed}</referrer_seed>\n`;
-    prompt += `<referrer_page number="${referrerContext.pageNumber}">\n${referrerContext.content}\n</referrer_page>\n`;
-    prompt += `</referrer_context>\n\n`;
-  }
-
-  // REQUEST
+  // ==================== REQUEST ====================
   prompt += `<request>\n`;
   prompt += `<seed>${seed}</seed>\n`;
   prompt += `<page_number>${pageNumber}</page_number>\n`;
   prompt += `</request>\n\n`;
 
-  // INSTRUCTIONS: Context-aware generation guidance
+  // ==================== INSTRUCTIONS ====================
   prompt += `<instructions>\n`;
   
   if (prevPages.length > 0) {
     const immediatePrev = prevPages[prevPages.length - 1];
-    prompt += `Generate page ${pageNumber}, continuing from page ${immediatePrev.pageNumber}.\n`;
+    prompt += `Generate page ${pageNumber}, continuing directly from where page ${immediatePrev.pageNumber} ended.\n`;
     prompt += `Maintain the voice, perspective, and momentum established.\n`;
   } else if (pageNumber === 1 && referrerContext) {
     prompt += `The reader arrived by clicking [[${seed}]] in another book.\n`;
@@ -334,13 +452,14 @@ export function buildPrompt(context: GenerationContext): string {
     prompt += `\nLater pages: Crisis, consequence, transformation. The story's weight should be felt.\n`;
   }
 
-  // Remind about book context for narrative coherence
-  if (pageNumber > 1 && bookSynopsis) {
-    prompt += `\nRemember: This is a ${bookSynopsis.narrativeMode} narrative. Stay true to the synopsis and opening situation. Don't drift from the book's established identity.\n`;
+  // Remind about narrative arc for coherence
+  if (pageNumber > 1 && bookArc) {
+    prompt += `\nRemember: This is a ${bookArc.narrativeMode} narrative. Stay true to the narrative arc. Don't drift from the book's established identity.\n`;
   }
 
   prompt += `</instructions>\n\n`;
 
+  // ==================== OUTPUT REQUIREMENTS ====================
   prompt += `<output_requirements>\n`;
   prompt += `- 200-300 words of prose\n`;
   prompt += `- Include 1-3 [[references]] to other books in the library (natural within the prose)\n`;

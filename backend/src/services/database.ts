@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Page, Reference, CanonicalFact, BookSynopsis, StoryEvent } from '../types';
+import { Page, Reference, CanonicalFact, BookArc, ChunkSummary, RunningSummary } from '../types';
 import { dbLogger } from './logger';
 
 const log = dbLogger;
@@ -139,11 +139,15 @@ export async function getPage(seed: string, pageNumber: number): Promise<Page | 
   return mapRowToPage(result.rows[0]);
 }
 
+/**
+ * Get previous pages for continuity context.
+ * Now fetches up to 3 pages (N-3, N-2, N-1) - expanded from 2.
+ */
 export async function getPreviousPages(seed: string, pageNumber: number): Promise<Page[]> {
   log.info('getPreviousPages called', { seed, pageNumber });
   
-  // Fetch up to 2 previous pages (N-2, N-1)
-  const prevPageNumbers = [pageNumber - 2, pageNumber - 1].filter(n => n >= 1);
+  // Fetch up to 3 previous pages (N-3, N-2, N-1) - expanded from 2
+  const prevPageNumbers = [pageNumber - 3, pageNumber - 2, pageNumber - 1].filter(n => n >= 1);
   
   if (prevPageNumbers.length === 0) {
     log.debug('No previous pages to fetch (page 1)', { seed, pageNumber });
@@ -171,6 +175,33 @@ export async function getPreviousPages(seed: string, pageNumber: number): Promis
     seed,
     pageNumber,
     prevPagesFound: pages.map(p => p.pageNumber),
+  });
+
+  return pages;
+}
+
+/**
+ * Get pages in a specific range (for chunk summary generation).
+ */
+export async function getPagesRange(seed: string, startPage: number, endPage: number): Promise<Page[]> {
+  log.info('getPagesRange called', { seed, startPage, endPage });
+  
+  const result = await executeQuery<any>(
+    'getPagesRange',
+    `SELECT id, seed, page_number, content, opening, closing, "references", discovered_at
+     FROM pages 
+     WHERE seed = $1 AND page_number >= $2 AND page_number <= $3
+     ORDER BY page_number ASC`,
+    [seed, startPage, endPage]
+  );
+
+  const pages = result.rows.map(mapRowToPage);
+  
+  log.info('Pages range retrieved', {
+    seed,
+    startPage,
+    endPage,
+    pagesFound: pages.length,
   });
 
   return pages;
@@ -449,227 +480,6 @@ export async function getFactsByNames(names: string[]): Promise<CanonicalFact[]>
   return facts;
 }
 
-// ==================== BOOK SYNOPSES ====================
-
-function mapRowToSynopsis(row: any): BookSynopsis {
-  return {
-    id: row.id,
-    seed: row.seed,
-    synopsis: row.synopsis,
-    updatedSynopsis: row.updated_synopsis,
-    narrativeMode: row.narrative_mode,
-    openingSituation: row.opening_situation,
-    lastUpdatedPage: row.last_updated_page,
-    createdAt: row.created_at,
-  };
-}
-
-// Save a book synopsis (generated from page 1)
-export async function saveBookSynopsis(synopsis: BookSynopsis): Promise<BookSynopsis> {
-  log.info('saveBookSynopsis called', {
-    seed: synopsis.seed,
-    narrativeMode: synopsis.narrativeMode,
-    synopsisLength: synopsis.synopsis.length,
-  });
-  
-  const result = await executeQuery<any>(
-    'saveBookSynopsis',
-    `INSERT INTO book_synopses (seed, synopsis, narrative_mode, opening_situation)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (seed) DO UPDATE SET
-       synopsis = EXCLUDED.synopsis,
-       narrative_mode = EXCLUDED.narrative_mode,
-       opening_situation = EXCLUDED.opening_situation
-     RETURNING id, seed, synopsis, narrative_mode, opening_situation, created_at`,
-    [synopsis.seed, synopsis.synopsis, synopsis.narrativeMode, synopsis.openingSituation]
-  );
-  
-  const savedSynopsis = mapRowToSynopsis(result.rows[0]);
-  
-  log.info('Book synopsis saved', {
-    id: savedSynopsis.id,
-    seed: savedSynopsis.seed,
-    narrativeMode: savedSynopsis.narrativeMode,
-  });
-  
-  return savedSynopsis;
-}
-
-// Get a book synopsis by seed
-export async function getBookSynopsis(seed: string): Promise<BookSynopsis | null> {
-  log.debug('getBookSynopsis called', { seed });
-  
-  const result = await executeQuery<any>(
-    'getBookSynopsis',
-    `SELECT id, seed, synopsis, updated_synopsis, narrative_mode, opening_situation, last_updated_page, created_at
-     FROM book_synopses WHERE seed = $1`,
-    [seed]
-  );
-  
-  if (result.rows.length === 0) {
-    log.debug('Book synopsis not found', { seed });
-    return null;
-  }
-  
-  const synopsis = mapRowToSynopsis(result.rows[0]);
-  
-  log.debug('Book synopsis retrieved', {
-    seed,
-    narrativeMode: synopsis.narrativeMode,
-    hasUpdatedSynopsis: !!synopsis.updatedSynopsis,
-  });
-  
-  return synopsis;
-}
-
-// Get page 1's opening text for narrative anchoring
-export async function getPage1Opening(seed: string): Promise<string | null> {
-  log.debug('getPage1Opening called', { seed });
-  
-  const result = await executeQuery<{ opening: string }>(
-    'getPage1Opening',
-    `SELECT opening FROM pages WHERE seed = $1 AND page_number = 1`,
-    [seed]
-  );
-  
-  if (result.rows.length === 0) {
-    log.debug('Page 1 opening not found', { seed });
-    return null;
-  }
-  
-  log.debug('Page 1 opening retrieved', {
-    seed,
-    openingLength: result.rows[0].opening.length,
-  });
-  
-  return result.rows[0].opening;
-}
-
-// ==================== NAVIGATION ACCESS CONTROL ====================
-
-/**
- * Get the highest page number that exists for a given seed.
- * Returns null if no pages exist for this seed.
- */
-export async function getHighestPageNumber(seed: string): Promise<number | null> {
-  log.debug('getHighestPageNumber called', { seed });
-  
-  const result = await executeQuery<{ highest: number | null }>(
-    'getHighestPageNumber',
-    `SELECT MAX(page_number) as highest FROM pages WHERE seed = $1`,
-    [seed]
-  );
-  
-  const highest = result.rows[0]?.highest;
-  
-  log.debug('Highest page number retrieved', {
-    seed,
-    highest: highest ?? 'none',
-  });
-  
-  return highest ?? null;
-}
-
-// ==================== STORY EVENTS ====================
-
-function mapRowToEvent(row: any): StoryEvent {
-  return {
-    id: row.id,
-    seed: row.seed,
-    pageNumber: row.page_number,
-    event: row.event,
-    significance: row.significance,
-    entities: row.entities || [],
-    createdAt: row.created_at,
-  };
-}
-
-// Save a story event (extracted from a page)
-export async function saveStoryEvent(event: StoryEvent): Promise<StoryEvent> {
-  log.info('saveStoryEvent called', {
-    seed: event.seed,
-    pageNumber: event.pageNumber,
-    significance: event.significance,
-  });
-
-  const result = await executeQuery<any>(
-    'saveStoryEvent',
-    `INSERT INTO story_events (seed, page_number, event, significance, entities)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (seed, page_number, event) DO UPDATE SET
-       significance = EXCLUDED.significance,
-       entities = EXCLUDED.entities
-     RETURNING id, seed, page_number, event, significance, entities, created_at`,
-    [event.seed, event.pageNumber, event.event, event.significance, JSON.stringify(event.entities)]
-  );
-
-  const savedEvent = mapRowToEvent(result.rows[0]);
-
-  log.info('Story event saved', {
-    id: savedEvent.id,
-    seed: savedEvent.seed,
-    pageNumber: savedEvent.pageNumber,
-    significance: savedEvent.significance,
-  });
-
-  return savedEvent;
-}
-
-/**
- * Get story events for a book with weighted selection:
- * - Recent events (last 4 pages) are always included
- * - Key events from earlier pages fill remaining slots
- * This prevents repetition while preserving important early plot beats.
- */
-export async function getBookEventsWeighted(
-  seed: string,
-  beforePage: number,
-  limit: number = 10
-): Promise<StoryEvent[]> {
-  log.info('getBookEventsWeighted called', { seed, beforePage, limit });
-
-  // Two-stage retrieval: recent events + key events from earlier
-  const recentLimit = Math.min(4, limit);
-  const keyLimit = limit - recentLimit;
-
-  const result = await executeQuery<any>(
-    'getBookEventsWeighted',
-    `WITH recent AS (
-        SELECT *, 1 as priority FROM story_events 
-        WHERE seed = $1 AND page_number < $2
-        ORDER BY page_number DESC 
-        LIMIT $3
-    ),
-    key_events AS (
-        SELECT *, 2 as priority FROM story_events 
-        WHERE seed = $1 AND page_number < $2 
-        AND significance = 'key'
-        AND id NOT IN (SELECT id FROM recent)
-        ORDER BY page_number ASC
-        LIMIT $4
-    )
-    SELECT * FROM (
-        SELECT * FROM recent
-        UNION ALL
-        SELECT * FROM key_events
-    ) combined
-    ORDER BY page_number ASC`,
-    [seed, beforePage, recentLimit, keyLimit]
-  );
-
-  const events = result.rows.map(mapRowToEvent);
-
-  log.info('Book events retrieved (weighted)', {
-    seed,
-    beforePage,
-    totalEvents: events.length,
-    recentCount: events.filter(e => e.pageNumber >= beforePage - 4).length,
-    keyCount: events.filter(e => e.significance === 'key').length,
-  });
-
-  return events;
-}
-
 // ==================== SAME-BOOK FACT PRIORITY ====================
 
 /**
@@ -761,26 +571,245 @@ export async function getRelevantFactsWithBookPriority(
   return [...sameBookFacts, ...crossBookFacts];
 }
 
-// ==================== SYNOPSIS UPDATES ====================
+// ==================== NAVIGATION ACCESS CONTROL ====================
 
 /**
- * Update a book's synopsis to reflect current story state.
- * Called every 5 pages to keep synopsis current.
+ * Get the highest page number that exists for a given seed.
+ * Returns null if no pages exist for this seed.
  */
-export async function updateSynopsisInDb(
-  seed: string,
-  updatedSynopsis: string,
-  lastUpdatedPage: number
-): Promise<void> {
-  log.info('updateSynopsisInDb called', { seed, lastUpdatedPage });
-
-  await executeQuery(
-    'updateSynopsis',
-    `UPDATE book_synopses 
-     SET updated_synopsis = $2, last_updated_page = $3
-     WHERE seed = $1`,
-    [seed, updatedSynopsis, lastUpdatedPage]
+export async function getHighestPageNumber(seed: string): Promise<number | null> {
+  log.debug('getHighestPageNumber called', { seed });
+  
+  const result = await executeQuery<{ highest: number | null }>(
+    'getHighestPageNumber',
+    `SELECT MAX(page_number) as highest FROM pages WHERE seed = $1`,
+    [seed]
   );
+  
+  const highest = result.rows[0]?.highest;
+  
+  log.debug('Highest page number retrieved', {
+    seed,
+    highest: highest ?? 'none',
+  });
+  
+  return highest ?? null;
+}
 
-  log.info('Synopsis updated in database', { seed, lastUpdatedPage });
+// ==================== BOOK NARRATIVE ARCS ====================
+
+function mapRowToBookArc(row: any): BookArc {
+  return {
+    id: row.id,
+    seed: row.seed,
+    narrativeArc: row.narrative_arc,
+    narrativeMode: row.narrative_mode,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * Save a book narrative arc (generated from page 1).
+ */
+export async function saveBookArc(arc: BookArc): Promise<BookArc> {
+  log.info('saveBookArc called', {
+    seed: arc.seed,
+    narrativeMode: arc.narrativeMode,
+    arcLength: arc.narrativeArc.length,
+  });
+  
+  const result = await executeQuery<any>(
+    'saveBookArc',
+    `INSERT INTO book_narrative_arcs (seed, narrative_arc, narrative_mode)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (seed) DO UPDATE SET
+       narrative_arc = EXCLUDED.narrative_arc,
+       narrative_mode = EXCLUDED.narrative_mode
+     RETURNING id, seed, narrative_arc, narrative_mode, created_at`,
+    [arc.seed, arc.narrativeArc, arc.narrativeMode]
+  );
+  
+  const savedArc = mapRowToBookArc(result.rows[0]);
+  
+  log.info('Book arc saved', {
+    id: savedArc.id,
+    seed: savedArc.seed,
+    narrativeMode: savedArc.narrativeMode,
+  });
+  
+  return savedArc;
+}
+
+/**
+ * Get a book's narrative arc by seed.
+ */
+export async function getBookArc(seed: string): Promise<BookArc | null> {
+  log.debug('getBookArc called', { seed });
+  
+  const result = await executeQuery<any>(
+    'getBookArc',
+    `SELECT id, seed, narrative_arc, narrative_mode, created_at
+     FROM book_narrative_arcs WHERE seed = $1`,
+    [seed]
+  );
+  
+  if (result.rows.length === 0) {
+    log.debug('Book arc not found', { seed });
+    return null;
+  }
+  
+  const arc = mapRowToBookArc(result.rows[0]);
+  
+  log.debug('Book arc retrieved', {
+    seed,
+    narrativeMode: arc.narrativeMode,
+  });
+  
+  return arc;
+}
+
+// ==================== CHUNK SUMMARIES ====================
+
+function mapRowToChunkSummary(row: any): ChunkSummary {
+  return {
+    id: row.id,
+    seed: row.seed,
+    chunkStart: row.chunk_start,
+    chunkEnd: row.chunk_end,
+    summary: row.summary,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * Save a chunk summary.
+ */
+export async function saveChunkSummary(chunk: ChunkSummary): Promise<ChunkSummary> {
+  log.info('saveChunkSummary called', {
+    seed: chunk.seed,
+    chunkStart: chunk.chunkStart,
+    chunkEnd: chunk.chunkEnd,
+    summaryLength: chunk.summary.length,
+  });
+  
+  const result = await executeQuery<any>(
+    'saveChunkSummary',
+    `INSERT INTO chunk_summaries (seed, chunk_start, chunk_end, summary)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (seed, chunk_start) DO UPDATE SET
+       chunk_end = EXCLUDED.chunk_end,
+       summary = EXCLUDED.summary
+     RETURNING id, seed, chunk_start, chunk_end, summary, created_at`,
+    [chunk.seed, chunk.chunkStart, chunk.chunkEnd, chunk.summary]
+  );
+  
+  const savedChunk = mapRowToChunkSummary(result.rows[0]);
+  
+  log.info('Chunk summary saved', {
+    id: savedChunk.id,
+    seed: savedChunk.seed,
+    chunkStart: savedChunk.chunkStart,
+    chunkEnd: savedChunk.chunkEnd,
+  });
+  
+  return savedChunk;
+}
+
+/**
+ * Get all chunk summaries for a book before a specific page.
+ */
+export async function getChunkSummaries(seed: string, beforePage: number): Promise<ChunkSummary[]> {
+  log.debug('getChunkSummaries called', { seed, beforePage });
+  
+  const result = await executeQuery<any>(
+    'getChunkSummaries',
+    `SELECT id, seed, chunk_start, chunk_end, summary, created_at
+     FROM chunk_summaries
+     WHERE seed = $1 AND chunk_end < $2
+     ORDER BY chunk_start ASC`,
+    [seed, beforePage]
+  );
+  
+  const chunks = result.rows.map(mapRowToChunkSummary);
+  
+  log.debug('Chunk summaries retrieved', {
+    seed,
+    beforePage,
+    count: chunks.length,
+  });
+  
+  return chunks;
+}
+
+// ==================== RUNNING SUMMARIES ====================
+
+function mapRowToRunningSummary(row: any): RunningSummary {
+  return {
+    id: row.id,
+    seed: row.seed,
+    momentum: row.momentum,
+    lastUpdatedPage: row.last_updated_page,
+    updatedAt: row.updated_at,
+  };
+}
+
+/**
+ * Save or update a running summary.
+ */
+export async function saveRunningSummary(summary: RunningSummary): Promise<RunningSummary> {
+  log.info('saveRunningSummary called', {
+    seed: summary.seed,
+    lastUpdatedPage: summary.lastUpdatedPage,
+    momentumLength: summary.momentum.length,
+  });
+  
+  const result = await executeQuery<any>(
+    'saveRunningSummary',
+    `INSERT INTO running_summaries (seed, momentum, last_updated_page)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (seed) DO UPDATE SET
+       momentum = EXCLUDED.momentum,
+       last_updated_page = EXCLUDED.last_updated_page,
+       updated_at = NOW()
+     RETURNING id, seed, momentum, last_updated_page, updated_at`,
+    [summary.seed, summary.momentum, summary.lastUpdatedPage]
+  );
+  
+  const savedSummary = mapRowToRunningSummary(result.rows[0]);
+  
+  log.info('Running summary saved', {
+    id: savedSummary.id,
+    seed: savedSummary.seed,
+    lastUpdatedPage: savedSummary.lastUpdatedPage,
+  });
+  
+  return savedSummary;
+}
+
+/**
+ * Get a book's running summary.
+ */
+export async function getRunningSummary(seed: string): Promise<RunningSummary | null> {
+  log.debug('getRunningSummary called', { seed });
+  
+  const result = await executeQuery<any>(
+    'getRunningSummary',
+    `SELECT id, seed, momentum, last_updated_page, updated_at
+     FROM running_summaries WHERE seed = $1`,
+    [seed]
+  );
+  
+  if (result.rows.length === 0) {
+    log.debug('Running summary not found', { seed });
+    return null;
+  }
+  
+  const summary = mapRowToRunningSummary(result.rows[0]);
+  
+  log.debug('Running summary retrieved', {
+    seed,
+    lastUpdatedPage: summary.lastUpdatedPage,
+  });
+  
+  return summary;
 }

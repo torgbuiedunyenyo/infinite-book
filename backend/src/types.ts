@@ -24,40 +24,66 @@ export interface CanonicalFact {
   updatedAt?: Date;
 }
 
-export interface BookSynopsis {
+// ==================== HIERARCHICAL SUMMARY SYSTEM ====================
+
+/**
+ * Book Narrative Arc: The story's DNA, created from page 1.
+ * A rich 150-250 word document that guides all future page generation.
+ * 
+ * Replaces the old BookSynopsis which had 4 redundant representations of page 1.
+ */
+export interface BookArc {
   id?: number;
   seed: string;
-  synopsis: string;           // 2-3 sentence summary of what this book is about
-  updatedSynopsis?: string;   // Synopsis updated to reflect current story state
-  narrativeMode: string;      // 'character', 'place', 'document', 'event', 'concept'
-  openingSituation: string;   // One sentence describing the scene on page 1
-  lastUpdatedPage?: number;   // Page number when synopsis was last updated
+  narrativeArc: string;      // 150-250 words: protagonist, tension, trajectory, themes, world connections
+  narrativeMode: string;     // 'character', 'place', 'document', 'event', 'concept'
   createdAt?: Date;
 }
 
-export interface StoryEvent {
+/**
+ * Running Summary: Current story momentum.
+ * Created at page 5, updated at pages 10, 15, 20...
+ * Tracks WHERE the story IS NOW, not its history.
+ */
+export interface RunningSummary {
   id?: number;
   seed: string;
-  pageNumber: number;
-  event: string;
-  significance: 'key' | 'minor';
-  entities: string[];
+  momentum: string;          // 75-125 words: current tensions, character positions, thematic direction
+  lastUpdatedPage: number;
+  updatedAt?: Date;
+}
+
+/**
+ * Chunk Summary: Factual summary of a 5-page segment.
+ * Created at chunk boundaries: pages 5, 10, 15, 20...
+ * 
+ * Replaces StoryEvent system which had a broken selection algorithm
+ * that created gaps in story context (pages 4-7 were never represented).
+ */
+export interface ChunkSummary {
+  id?: number;
+  seed: string;
+  chunkStart: number;        // First page of chunk (1, 6, 11, 16...)
+  chunkEnd: number;          // Last page of chunk (5, 10, 15, 20...)
+  summary: string;           // 75-125 words: key events, character developments, plot progressions
   createdAt?: Date;
 }
+
+// ==================== GENERATION CONTEXT ====================
 
 export interface GenerationContext {
   seed: string;
   pageNumber: number;
-  prevPages: Page[];
+  prevPages: Page[];                    // Now 3 pages (was 2) for expanded sliding window
   referrerContext?: {
     seed: string;
     pageNumber: number;
     content: string;
   };
-  canonicalFacts?: CanonicalFact[];  // Relevant facts for consistency
-  storyEvents?: StoryEvent[];        // What has happened in this book (prevents repetition)
-  bookSynopsis?: BookSynopsis;       // Book-level context for narrative coherence
-  page1Opening?: string;             // Opening of page 1 for anchoring
+  canonicalFacts?: CanonicalFact[];     // Relevant facts for world consistency
+  bookArc?: BookArc;                    // Book's narrative DNA (pages > 1)
+  runningSummary?: RunningSummary;      // Current story momentum (pages > 5)
+  chunkSummaries?: ChunkSummary[];      // Story history in 5-page chunks
 }
 
 export interface GetOrGenerateResult {

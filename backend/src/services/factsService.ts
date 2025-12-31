@@ -1,6 +1,16 @@
+/**
+ * Facts Service: Extracts and retrieves canonical facts for world consistency.
+ * 
+ * Updated to use:
+ * - Opus 4.5 (instead of Sonnet) for better extraction quality
+ * - Full EXTRACTION_SYSTEM prompt with world context to prevent misinterpretation
+ *   (e.g., the old "Jay is son of Tan" error)
+ */
+
 import Anthropic from '@anthropic-ai/sdk';
 import { CanonicalFact, Page } from '../types';
 import { saveCanonicalFact, getRelevantFactsWithBookPriority } from './database';
+import { EXTRACTION_SYSTEM } from '../prompts/templates';
 import { factsLogger } from './logger';
 
 const log = factsLogger;
@@ -9,12 +19,18 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// Use Sonnet 4.5 for fact extraction (balanced performance)
-const EXTRACTION_MODEL = 'claude-sonnet-4-5-20250929';
+// Use Opus 4.5 for fact extraction - quality over cost/latency
+// This prevents misinterpretation errors (e.g., "Jay is son of Tan")
+const MODEL = 'claude-opus-4-5-20251101';
+const THINKING_BUDGET = 8000;
 
 /**
  * Extract canonical facts from a newly generated page.
- * This runs asynchronously after page generation to avoid slowing down responses.
+ * 
+ * Now uses:
+ * - Full world context (EXTRACTION_SYSTEM) to correctly interpret relationships
+ * - Opus 4.5 with extended thinking for better quality
+ * - Explicit ground truths about Jay/Tan relationship
  */
 export async function extractFactsFromPage(page: Page): Promise<CanonicalFact[]> {
   log.info('Extracting facts from page', {
@@ -23,12 +39,21 @@ export async function extractFactsFromPage(page: Page): Promise<CanonicalFact[]>
     contentLength: page.content.length,
   });
 
-  const prompt = `<task>
-Extract any NEW concrete facts about characters, places, events, objects, or relationships from this page of fiction. These facts will be used to maintain consistency across other books in the same world.
+  const prompt = `${EXTRACTION_SYSTEM}
 
-Only extract facts that are:
+<task>
+Extract concrete facts from this page of fiction. These facts will be used to maintain consistency across other books in the same world.
+
+CRITICAL - use the world knowledge above to interpret correctly:
+- Jay and Tan are ROMANTIC PARTNERS, not relatives
+- Power dynamics between eras may look like other relationships but aren't
+- Deference or authority doesn't imply family relationships
+- Characters from different eras have different social positions, not family ties
+
+Extract facts that are:
 - Concrete and specific (not vague descriptions)
 - About named entities (characters, places, objects)
+- Consistent with the world described above
 - Establishable details that should remain consistent
 
 Do NOT extract:
@@ -36,6 +61,7 @@ Do NOT extract:
 - Vague descriptions
 - Opinions or subjective judgments
 - Things that are only implied or speculated
+- Facts that contradict the ground truths above
 
 <page seed="${page.seed}" page_number="${page.pageNumber}">
 ${page.content}
@@ -52,7 +78,7 @@ Example:
 [
   {"category": "character", "name": "Jay", "fact": "Works at a shop in Oakland that sells clef to tourists."},
   {"category": "place", "name": "The shop", "fact": "Located on a corner in Oakland, open late."},
-  {"category": "relationship", "name": "Jay and Tan", "fact": "Met when Tan couldn't figure out how to pay with his phone."}
+  {"category": "relationship", "name": "Jay and Tan", "fact": "Are romantic partners who met when Tan couldn't use Jay's phone."}
 ]
 
 If no concrete facts can be extracted, return an empty array: []
@@ -62,8 +88,12 @@ Return ONLY the JSON array, no other text.
 
   try {
     const response = await anthropic.messages.create({
-      model: EXTRACTION_MODEL,
-      max_tokens: 2000,
+      model: MODEL,
+      max_tokens: 4000,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: THINKING_BUDGET,
+      },
       messages: [{ role: 'user', content: prompt }],
     });
 
@@ -79,7 +109,7 @@ Return ONLY the JSON array, no other text.
       let jsonText = textBlock.text.trim();
       // Strip markdown code block wrapper if present
       if (jsonText.startsWith('```')) {
-        jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+        jsonText = jsonText.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
       }
       extractedFacts = JSON.parse(jsonText);
     } catch (parseError) {
@@ -159,14 +189,8 @@ Return ONLY the JSON array, no other text.
  * Uses same-book priority: facts from this book first, then cross-book facts via FTS.
  * This ensures a book never "forgets" its own established facts.
  */
-export async function getRelevantFactsForGeneration(
-  seed: string,
-  existingPageContent?: string
-): Promise<CanonicalFact[]> {
-  log.info('Getting relevant facts for generation', {
-    seed,
-    hasExistingContent: !!existingPageContent,
-  });
+export async function getRelevantFactsForGeneration(seed: string): Promise<CanonicalFact[]> {
+  log.info('Getting relevant facts for generation', { seed });
 
   // Use priority retrieval: same-book facts first, then cross-book via FTS
   const facts = await getRelevantFactsWithBookPriority(seed, 12);
@@ -198,4 +222,3 @@ export function scheduleFactExtraction(page: Page): void {
     }
   });
 }
-
