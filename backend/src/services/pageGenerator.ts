@@ -1,9 +1,14 @@
 import { Page, Reference, GenerationContext, GetOrGenerateResult, SequentialAccessError, InvalidSeedAccessError } from '../types';
-import { getPage, getPreviousPages, savePage } from './database';
+import { getPage, getPreviousPages, savePage, getBookArc, getChunkSummaries } from './database';
 import { generatePageContent, streamPageContent } from './llm';
 import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
 import { getContextForGeneration, scheduleArcGeneration, scheduleChunkAndMomentum } from './summaryService';
 import { generatorLogger } from './logger';
+
+// ==================== CONTEXT WAITING ====================
+// Constants for waiting on required context
+const CONTEXT_POLL_INTERVAL = 2000; // Check every 2 seconds
+const CONTEXT_MAX_WAIT = 120000;    // Wait up to 2 minutes
 
 const log = generatorLogger;
 
@@ -21,6 +26,164 @@ const generationsInProgress = new Map<string, Promise<Page>>();
 
 function pageKey(seed: string, pageNumber: number): string {
   return `${seed}::${pageNumber}`;
+}
+
+/**
+ * Wait for required narrative context to be ready before proceeding with generation.
+ * This prevents narrative drift by ensuring:
+ * - Pages 2+ have the book arc (generated from page 1)
+ * - Pages 6+ have the most recent chunk summary
+ * 
+ * Polls the database at intervals until context exists or timeout is reached.
+ */
+async function waitForRequiredContext(
+  seed: string,
+  pageNumber: number
+): Promise<void> {
+  const startTime = Date.now();
+
+  // Pages 2+ require the book arc
+  if (pageNumber > 1) {
+    let bookArc = await getBookArc(seed);
+    
+    while (!bookArc && (Date.now() - startTime) < CONTEXT_MAX_WAIT) {
+      log.debug('Waiting for book arc', {
+        seed,
+        pageNumber,
+        elapsed: `${Date.now() - startTime}ms`,
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, CONTEXT_POLL_INTERVAL));
+      bookArc = await getBookArc(seed);
+    }
+    
+    if (!bookArc) {
+      log.warn('Timeout waiting for book arc - proceeding anyway', { 
+        seed, 
+        pageNumber,
+        waitedMs: Date.now() - startTime,
+      });
+    } else {
+      log.debug('Book arc now available', { seed, pageNumber });
+    }
+  }
+
+  // Pages 6+ require the most recent chunk summary
+  if (pageNumber > 5) {
+    // Calculate the most recent completed chunk end
+    // Page 6-10 needs chunk 1-5 (end=5)
+    // Page 11-15 needs chunk 6-10 (end=10)
+    const requiredChunkEnd = Math.floor((pageNumber - 1) / 5) * 5;
+    
+    if (requiredChunkEnd >= 5) {
+      let chunks = await getChunkSummaries(seed, pageNumber);
+      let hasRequiredChunk = chunks.some(c => c.chunkEnd === requiredChunkEnd);
+      
+      while (!hasRequiredChunk && (Date.now() - startTime) < CONTEXT_MAX_WAIT) {
+        log.debug('Waiting for chunk summary', {
+          seed,
+          pageNumber,
+          requiredChunkEnd,
+          elapsed: `${Date.now() - startTime}ms`,
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, CONTEXT_POLL_INTERVAL));
+        chunks = await getChunkSummaries(seed, pageNumber);
+        hasRequiredChunk = chunks.some(c => c.chunkEnd === requiredChunkEnd);
+      }
+      
+      if (!hasRequiredChunk) {
+        log.warn('Timeout waiting for chunk summary - proceeding anyway', {
+          seed,
+          pageNumber,
+          requiredChunkEnd,
+          waitedMs: Date.now() - startTime,
+        });
+      } else {
+        log.debug('Chunk summary now available', { seed, pageNumber, requiredChunkEnd });
+      }
+    }
+  }
+}
+
+/**
+ * Generator version of waitForRequiredContext that yields waiting events.
+ * Used by streaming endpoint to inform the frontend of delays.
+ */
+async function* waitForRequiredContextWithEvents(
+  seed: string,
+  pageNumber: number
+): AsyncGenerator<{ type: 'waiting'; message: string }, void, unknown> {
+  const startTime = Date.now();
+  let yieldedWaiting = false;
+
+  // Pages 2+ require the book arc
+  if (pageNumber > 1) {
+    let bookArc = await getBookArc(seed);
+    
+    while (!bookArc && (Date.now() - startTime) < CONTEXT_MAX_WAIT) {
+      if (!yieldedWaiting) {
+        log.info('Yielding waiting event for book arc', { seed, pageNumber });
+        yield { type: 'waiting', message: 'Preparing narrative context...' };
+        yieldedWaiting = true;
+      }
+      
+      log.debug('Waiting for book arc (streaming)', {
+        seed,
+        pageNumber,
+        elapsed: `${Date.now() - startTime}ms`,
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, CONTEXT_POLL_INTERVAL));
+      bookArc = await getBookArc(seed);
+    }
+    
+    if (!bookArc) {
+      log.warn('Timeout waiting for book arc (streaming) - proceeding anyway', {
+        seed,
+        pageNumber,
+        waitedMs: Date.now() - startTime,
+      });
+    }
+  }
+
+  // Pages 6+ require the most recent chunk summary
+  if (pageNumber > 5) {
+    const requiredChunkEnd = Math.floor((pageNumber - 1) / 5) * 5;
+    
+    if (requiredChunkEnd >= 5) {
+      let chunks = await getChunkSummaries(seed, pageNumber);
+      let hasRequiredChunk = chunks.some(c => c.chunkEnd === requiredChunkEnd);
+      
+      while (!hasRequiredChunk && (Date.now() - startTime) < CONTEXT_MAX_WAIT) {
+        if (!yieldedWaiting) {
+          log.info('Yielding waiting event for chunk summary', { seed, pageNumber, requiredChunkEnd });
+          yield { type: 'waiting', message: 'Preparing chapter summary...' };
+          yieldedWaiting = true;
+        }
+        
+        log.debug('Waiting for chunk summary (streaming)', {
+          seed,
+          pageNumber,
+          requiredChunkEnd,
+          elapsed: `${Date.now() - startTime}ms`,
+        });
+        
+        await new Promise(resolve => setTimeout(resolve, CONTEXT_POLL_INTERVAL));
+        chunks = await getChunkSummaries(seed, pageNumber);
+        hasRequiredChunk = chunks.some(c => c.chunkEnd === requiredChunkEnd);
+      }
+      
+      if (!hasRequiredChunk) {
+        log.warn('Timeout waiting for chunk summary (streaming) - proceeding anyway', {
+          seed,
+          pageNumber,
+          requiredChunkEnd,
+          waitedMs: Date.now() - startTime,
+        });
+      }
+    }
+  }
 }
 
 function extractOpening(content: string): string {
@@ -319,6 +482,10 @@ async function doGeneratePage(
   referrerContext?: ReferrerContext
 ): Promise<Page> {
   
+  // Wait for required context to be ready (book arc for pages 2+, chunk summaries for pages 6+)
+  log.debug(`Request #${genId}: Checking required context availability`);
+  await waitForRequiredContext(seed, pageNumber);
+  
   // Fetch previous pages for context (now 3 pages instead of 2)
   log.debug(`Request #${genId}: Fetching previous pages for continuity`);
   const prevPages = await getPreviousPages(seed, pageNumber);
@@ -440,7 +607,8 @@ export async function* streamOrGetPage(
 ): AsyncGenerator<
   | { type: 'existing'; page: Page }
   | { type: 'chunk'; text: string }
-  | { type: 'complete'; page: Page },
+  | { type: 'complete'; page: Page }
+  | { type: 'waiting'; message: string },
   void,
   unknown
 > {
@@ -502,6 +670,10 @@ export async function* streamOrGetPage(
   // ACCESS CONTROL: Validate that this page can be generated
   log.debug(`Stream #${genId}: Validating generation access`);
   await validateGenerationAccess(seed, pageNumber, referrerContext, isCanonicalSeed);
+  
+  // Wait for required context, yielding 'waiting' events to inform the frontend
+  log.debug(`Stream #${genId}: Checking required context availability`);
+  yield* waitForRequiredContextWithEvents(seed, pageNumber);
   
   cacheMisses++;
   streamGenerations++;

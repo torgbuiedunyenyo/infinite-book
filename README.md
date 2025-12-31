@@ -122,7 +122,7 @@ This means the library's expansion is driven entirely by the reading experience.
 
 ### Consistency Systems
 
-The library maintains consistency through a layered approach:
+The library maintains consistency through a hierarchical approach designed to prevent narrative drift and repetition.
 
 #### World Layer (Cross-Book Coherence)
 
@@ -134,22 +134,31 @@ The library maintains consistency through a layered approach:
 
 #### Book Layer (Narrative Identity)
 
-**Book Synopses**: When page 1 of any book is generated, the system extracts a synopsis capturing:
-- What the book is about (2-3 sentences)
+**Book Narrative Arc**: When page 1 of any book is generated, the system extracts a rich 150-250 word "narrative DNA" document capturing:
+- What the book is fundamentally about
+- The protagonist (if any) and what they want
+- The central tension or conflict
+- The trajectory set in motion
+- Themes being explored
 - The narrative mode (character, place, document, event, or concept)
-- The opening situation established on page 1
 
-**Rolling Synopsis Updates**: Every 5 pages, the synopsis is updated to reflect where the story is NOW, not just where it started. This prevents storyline drift in longer books.
+This arc guides all future page generation for the book.
+
+**Running Summary**: Starting at page 5 and updated every 5 pages thereafter, a 75-125 word summary tracks *where the story is now*—current tensions, character positions, thematic direction, and story momentum. This is about current state, not history.
+
+#### Story Layer (Complete Coverage)
+
+**Chunk Summaries**: At pages 5, 10, 15, 20, etc., a factual summary of the preceding 5 pages is generated. Each chunk summary is 75-125 words covering key events, character developments, and plot progressions.
+
+For page 12, the prompt includes:
+- Chunk 1-5 summary
+- Chunk 6-10 summary
+
+This ensures **complete coverage** of story history with no gaps—solving the "missing middle" problem where earlier systems would lose track of events from pages 4-7.
 
 #### Page Layer (Immediate Context)
 
-**Sequential Page Continuity**: When generating page N, the system retrieves up to 2 previous pages (N-2 and N-1) to provide context. The new page continues naturally from where the previous page left off.
-
-**Story Events**: 1-3 events are extracted from each page (actions, discoveries, decisions). When generating new pages, the system includes:
-- Recent events (last 4 pages)
-- Key events from earlier pages (turning points, revelations)
-
-This prevents repetition (the model won't have Jay give Tan clef on page 2 AND page 8) while preserving important early plot beats.
+**Sliding Window**: When generating page N, the system retrieves the full text of pages N-3, N-2, and N-1 (up to 3 previous pages). The new page continues naturally from where the previous page left off.
 
 #### Origin Layer (New Book Context)
 
@@ -202,21 +211,23 @@ CanonicalFact {
   source_seeds: array    // Which books established this fact
 }
 
-BookSynopsis {
+BookArc {
   seed: string           // The book identifier
-  synopsis: string       // 2-3 sentence summary (from page 1)
-  updated_synopsis: string // Current synopsis (updated every 5 pages)
+  narrative_arc: string  // 150-250 word narrative DNA
   narrative_mode: string // 'character', 'place', 'document', 'event', 'concept'
-  opening_situation: string // One-sentence scene description
-  last_updated_page: integer // When synopsis was last updated
 }
 
-StoryEvent {
+RunningSummary {
   seed: string           // The book identifier
-  page_number: integer   // Which page this event occurred on
-  event: string          // One-sentence description of what happened
-  significance: string   // 'key' (turning point) or 'minor' (ongoing action)
-  entities: array        // Character/place names involved
+  momentum: string       // 75-125 word current state summary
+  last_updated_page: integer
+}
+
+ChunkSummary {
+  seed: string           // The book identifier
+  chunk_start: integer   // First page of chunk (1, 6, 11, 16...)
+  chunk_end: integer     // Last page of chunk (5, 10, 15, 20...)
+  summary: string        // 75-125 word factual summary
 }
 ```
 
@@ -227,19 +238,18 @@ When a page is requested that doesn't exist:
 1. **Access control validation:**
    - For page N > 1: verify page N-1 exists
    - For page 1 of non-canonical seeds: verify referrer contains [[this seed]] as a reference
-2. Retrieve up to 2 previous pages for continuity context
+2. Retrieve up to 3 previous pages for continuity context (sliding window)
 3. Retrieve relevant canonical facts (same-book first, then cross-book via FTS, up to 12 total)
-4. Retrieve story events (recent events + key events from earlier, up to 10 total)
-5. For pages > 1: retrieve book synopsis (preferring updated synopsis) and page 1 opening
-6. Build a structured prompt with world essence, context, and guidelines
+4. For pages > 1: retrieve book narrative arc
+5. For pages > 5: retrieve running summary and all chunk summaries
+6. Build a structured prompt with world essence, hierarchical context, and guidelines
 7. Generate via Claude Opus 4.5 with extended thinking
 8. Extract opening, closing, and references
 9. Store permanently
 10. Background tasks:
-    - Extract canonical facts
-    - Extract story events (1-3 per page)
-    - Generate book synopsis (page 1 only)
-    - Update synopsis (every 5 pages)
+    - Extract canonical facts (Opus 4.5 with world context)
+    - Generate book narrative arc (page 1 only)
+    - Generate chunk summary + update running summary (pages 5, 10, 15, 20...)
 
 ### API
 
@@ -290,8 +300,7 @@ library-of-babel/
 │   │   │   └── pages.ts          # API handlers
 │   │   ├── services/
 │   │   │   ├── database.ts       # PostgreSQL operations
-│   │   │   ├── bookService.ts    # Book synopsis generation & updates
-│   │   │   ├── eventsService.ts  # Story event extraction
+│   │   │   ├── summaryService.ts # Hierarchical summaries (arc, chunks, momentum)
 │   │   │   ├── factsService.ts   # Canonical facts extraction
 │   │   │   ├── llm.ts            # Claude API integration
 │   │   │   ├── logger.ts         # Structured logging
@@ -307,6 +316,8 @@ library-of-babel/
 │   │   ├── navigation.ts
 │   │   ├── renderer.ts
 │   │   ├── sidebar.ts
+│   │   ├── swipe.ts
+│   │   ├── tour.ts
 │   │   ├── logger.ts
 │   │   └── types.ts
 │   ├── vite.config.ts
@@ -318,7 +329,8 @@ library-of-babel/
 │       ├── 002_add_book_synopses.sql
 │       ├── 003_remove_citations.sql
 │       ├── 004_add_story_events.sql
-│       └── 005_add_synopsis_updates.sql
+│       ├── 005_add_synopsis_updates.sql
+│       └── 006_hierarchical_summaries.sql
 └── README.md
 ```
 
@@ -329,7 +341,7 @@ library-of-babel/
 - **Backend**: Node.js, Express, TypeScript
 - **Frontend**: Vite, TypeScript, vanilla JS, marked
 - **Database**: PostgreSQL
-- **AI**: Claude Opus 4.5 (page generation) + Claude Sonnet 4.5 (synopsis/fact extraction)
+- **AI**: Claude Opus 4.5 with extended thinking (page generation and all extraction)
 - **Styling**: EB Garamond font, CSS
 
 ---
@@ -354,6 +366,7 @@ psql $DATABASE_URL -f database/migrations/002_add_book_synopses.sql
 psql $DATABASE_URL -f database/migrations/003_remove_citations.sql
 psql $DATABASE_URL -f database/migrations/004_add_story_events.sql
 psql $DATABASE_URL -f database/migrations/005_add_synopsis_updates.sql
+psql $DATABASE_URL -f database/migrations/006_hierarchical_summaries.sql
 
 # 5. Start development servers
 cd backend && npm run dev      # Port 3000

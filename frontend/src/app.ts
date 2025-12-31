@@ -16,6 +16,7 @@ import {
   finalizeStreaming,
   onReferenceClick,
   updateNavArrows,
+  showWaitingMessage,
 } from './renderer';
 import { initSidebar, onBookSelect, isSidebarOpen } from './sidebar';
 import { shouldShowTour, startTour } from './tour';
@@ -268,6 +269,19 @@ async function fetchPageStreaming(seed: string, page: number, referrer?: Referre
         references: references.map(r => r.text),
         isNewDiscovery: data.isNewDiscovery,
       });
+    });
+    
+    eventSource.addEventListener('waiting', (e) => {
+      const data = JSON.parse((e as MessageEvent).data);
+      
+      apiLogger.info('SSE: Waiting for context', {
+        message: data.message,
+        seed,
+        page,
+      });
+      
+      // Update the loading indicator text to show the waiting message
+      showWaitingMessage(data.message);
     });
     
     eventSource.addEventListener('done', () => {

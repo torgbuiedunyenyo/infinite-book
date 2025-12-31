@@ -400,6 +400,16 @@ router.get('/page/stream', async (req: Request, res: Response) => {
           discoveredAt: event.page.discoveredAt?.toISOString(),
           isNewDiscovery: true,
         })}\n\n`);
+        
+      } else if (event.type === 'waiting') {
+        log.info('SSE: Sending waiting event', {
+          message: event.message,
+          seed,
+          pageNumber,
+        });
+        
+        res.write(`event: waiting\n`);
+        res.write(`data: ${JSON.stringify({ message: event.message })}\n\n`);
       }
     }
 

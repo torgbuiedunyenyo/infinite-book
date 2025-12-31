@@ -66,6 +66,34 @@ export function showLoadingIndicator(): void {
 export function hideLoadingIndicator(): void {
   log.debug('Hiding loading indicator');
   loadingIndicatorEl.classList.remove('visible');
+  // Reset loading text to default
+  resetLoadingText();
+}
+
+/**
+ * Show a custom message in the loading indicator.
+ * Used when waiting for narrative context to be ready.
+ */
+export function showWaitingMessage(message: string): void {
+  log.info('Showing waiting message', { message });
+  
+  const textEl = loadingIndicatorEl.querySelector('.loading-text');
+  if (textEl) {
+    textEl.textContent = message;
+  }
+  
+  // Ensure loading indicator is visible
+  loadingIndicatorEl.classList.add('visible');
+}
+
+/**
+ * Reset loading text to default "Discovering..."
+ */
+function resetLoadingText(): void {
+  const textEl = loadingIndicatorEl.querySelector('.loading-text');
+  if (textEl) {
+    textEl.textContent = 'Discovering';
+  }
 }
 
 export function clearContent(): void {
