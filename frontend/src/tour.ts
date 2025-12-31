@@ -143,7 +143,8 @@ async function showStep(index: number): Promise<void> {
   
   // Position spotlight around target
   const rect = targetEl.getBoundingClientRect();
-  const padding = 12;
+  const isMobile = window.innerWidth <= 768;
+  const padding = isMobile ? 8 : 12;
   
   spotlightEl.style.top = `${rect.top - padding + window.scrollY}px`;
   spotlightEl.style.left = `${rect.left - padding}px`;
@@ -183,17 +184,37 @@ function positionTooltip(
 ): void {
   if (!tooltipEl) return;
   
+  const isMobile = window.innerWidth <= 768;
+  const isVerySmall = window.innerWidth <= 400;
+  
+  // On very small screens, use fixed bottom positioning (handled by CSS)
+  if (isVerySmall) {
+    tooltipEl.style.top = '';
+    tooltipEl.style.left = '';
+    tooltipEl.classList.add('tour-tooltip-fixed');
+    return;
+  }
+  
+  tooltipEl.classList.remove('tour-tooltip-fixed');
+  
+  // On mobile, convert left/right positions to bottom to avoid clipping
+  let effectivePosition = position;
+  if (isMobile && (position === 'left' || position === 'right')) {
+    effectivePosition = 'bottom';
+  }
+  
   // Reset position to measure true size
   tooltipEl.style.top = '0';
   tooltipEl.style.left = '0';
   
-  const gap = 24;
+  const gap = isMobile ? 16 : 24;
   const tooltipRect = tooltipEl.getBoundingClientRect();
+  const viewportPadding = isMobile ? 12 : 20;
   
   let top = 0;
   let left = 0;
   
-  switch (position) {
+  switch (effectivePosition) {
     case 'top':
       top = targetRect.top - tooltipRect.height - gap + window.scrollY;
       left = targetRect.left + (targetRect.width - tooltipRect.width) / 2;
@@ -212,9 +233,13 @@ function positionTooltip(
       break;
   }
   
-  // Keep within viewport
-  left = Math.max(20, Math.min(left, window.innerWidth - tooltipRect.width - 20));
-  top = Math.max(20 + window.scrollY, top);
+  // Keep within viewport horizontally
+  left = Math.max(viewportPadding, Math.min(left, window.innerWidth - tooltipRect.width - viewportPadding));
+  
+  // Keep within viewport vertically
+  top = Math.max(viewportPadding + window.scrollY, top);
+  const maxTop = window.scrollY + window.innerHeight - tooltipRect.height - viewportPadding;
+  top = Math.min(top, maxTop);
   
   tooltipEl.style.top = `${top}px`;
   tooltipEl.style.left = `${left}px`;

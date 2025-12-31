@@ -18,6 +18,7 @@ import {
 } from './renderer';
 import { initSidebar, onBookSelect, isSidebarOpen } from './sidebar';
 import { shouldShowTour, startTour } from './tour';
+import { initSwipeNavigation } from './swipe';
 import { PageData, Reference } from './types';
 import { appLogger, apiLogger, cacheLogger } from './logger';
 
@@ -670,6 +671,19 @@ async function init(): Promise<void> {
   // Set up keyboard handlers
   log.debug('Setting up keyboard handlers');
   document.addEventListener('keydown', handleKeyDown);
+  
+  // Set up swipe navigation for mobile
+  log.debug('Setting up swipe navigation');
+  const bookEl = document.getElementById('book');
+  if (bookEl) {
+    initSwipeNavigation({
+      element: bookEl,
+      minDistance: 50,        // Minimum 50px horizontal swipe
+      maxVerticalRatio: 0.75, // Allow up to 75% vertical deviation
+      onSwipeLeft: handleNavRight,  // Swipe left = next page
+      onSwipeRight: handleNavLeft,  // Swipe right = previous page
+    });
+  }
   
   // Set up reference click handler
   log.debug('Setting up reference click handler');
