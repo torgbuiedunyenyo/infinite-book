@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { SYSTEM_PROMPT, getSystemPrompt } from '../prompts/templates';
 import { llmLogger } from './logger';
+import { langfuse, isLangfuseEnabled } from './langfuse';
 
 const log = llmLogger;
 
@@ -26,12 +27,79 @@ const MODEL = 'claude-opus-4-5-20251101';
 const MAX_TOKENS = 64000;
 const THINKING_BUDGET = 15000;
 
-export async function generatePageContent(prompt: string, isCoreSeed: boolean = false): Promise<string> {
+// ==================== LANGFUSE TRACING ====================
+
+export interface GenerationMetadata {
+  seed: string;
+  pageNumber: number;
+  isCoreSeed?: boolean;
+  narrativeMode?: string;
+}
+
+export interface GenerationResult {
+  content: string;
+  traceId: string | null;
+}
+
+export interface StreamGenerationResult {
+  traceId: string | null;
+}
+
+/**
+ * Create a Langfuse trace for page generation
+ */
+function createGenerationTrace(metadata: GenerationMetadata) {
+  if (!isLangfuseEnabled()) {
+    return { trace: null, generation: null };
+  }
+
+  const trace = langfuse.trace({
+    name: 'page-generation',
+    metadata: {
+      seed: metadata.seed,
+      pageNumber: metadata.pageNumber,
+      isCoreSeed: metadata.isCoreSeed,
+      narrativeMode: metadata.narrativeMode,
+    },
+    tags: [
+      metadata.isCoreSeed ? 'core-narrative' : 'inset-narrative',
+      `page-${metadata.pageNumber}`,
+    ],
+  });
+
+  const generation = trace.generation({
+    name: 'claude-opus-page-generation',
+    model: MODEL,
+    modelParameters: {
+      maxTokens: MAX_TOKENS,
+      thinkingBudget: THINKING_BUDGET,
+    },
+  });
+
+  return { trace, generation };
+}
+
+// ==================== GENERATION FUNCTIONS ====================
+
+export async function generatePageContent(
+  prompt: string, 
+  isCoreSeed: boolean = false,
+  metadata?: GenerationMetadata
+): Promise<GenerationResult> {
   // Must use streaming internally because extended thinking can exceed 10-minute timeout
   const requestId = ++totalRequests;
   nonStreamingRequests++;
   
   const systemPrompt = getSystemPrompt(isCoreSeed);
+  
+  // Create Langfuse trace if metadata provided
+  const effectiveMetadata = metadata || { seed: 'unknown', pageNumber: 0, isCoreSeed };
+  const { trace, generation } = createGenerationTrace(effectiveMetadata);
+  
+  // Update generation with input
+  if (generation) {
+    generation.update({ input: { prompt, systemPrompt: systemPrompt.slice(0, 1000) + '...' } });
+  }
   
   log.separator(`LLM REQUEST #${requestId} (streaming-collect)`);
   
@@ -39,6 +107,7 @@ export async function generatePageContent(prompt: string, isCoreSeed: boolean = 
     promptLength: prompt.length,
     systemPromptLength: systemPrompt.length,
     isCoreSeed,
+    traceId: trace?.id,
     promptPreview: prompt.slice(0, 500) + '...',
   });
   
@@ -91,6 +160,12 @@ export async function generatePageContent(prompt: string, isCoreSeed: boolean = 
         thinkingChars,
         chunkCount,
       });
+      
+      // End generation with error
+      if (generation) {
+        generation.end({ statusMessage: 'No text content in response', level: 'ERROR' });
+      }
+      
       throw new Error('No text content in LLM response');
     }
     
@@ -100,8 +175,26 @@ export async function generatePageContent(prompt: string, isCoreSeed: boolean = 
       thinkingChars,
       chunkCount,
       wordCount: collectedText.split(/\s+/).length,
+      traceId: trace?.id,
       textPreview: collectedText.slice(0, 200) + '...',
     });
+    
+    // End generation with success
+    if (generation) {
+      generation.end({
+        output: collectedText,
+        metadata: {
+          thinkingChars,
+          chunkCount,
+          wordCount: collectedText.split(/\s+/).length,
+        },
+      });
+    }
+    
+    // Update trace with output
+    if (trace) {
+      trace.update({ output: collectedText.slice(0, 500) + '...' });
+    }
     
     log.debug(`Request #${requestId}: Cumulative LLM stats`, {
       totalRequests,
@@ -112,7 +205,10 @@ export async function generatePageContent(prompt: string, isCoreSeed: boolean = 
       avgLatency: `${(totalLatency / totalRequests).toFixed(2)}ms`,
     });
 
-    return collectedText;
+    return {
+      content: collectedText,
+      traceId: trace?.id || null,
+    };
   } catch (error) {
     const latency = performance.now() - startTime;
     log.error(`Request #${requestId}: API call failed`, {
@@ -122,13 +218,67 @@ export async function generatePageContent(prompt: string, isCoreSeed: boolean = 
       error: error instanceof Error ? error.message : String(error),
       errorType: error instanceof Error ? error.constructor.name : typeof error,
     });
+    
+    // End generation with error
+    if (generation) {
+      generation.end({ 
+        statusMessage: error instanceof Error ? error.message : String(error), 
+        level: 'ERROR' 
+      });
+    }
+    
     throw error;
   }
 }
 
+/**
+ * Stream page content with Langfuse tracing.
+ * Returns an object with the generator and trace ID.
+ * 
+ * Usage:
+ *   const { generator, traceId } = streamPageContentWithTrace(prompt, isCoreSeed, metadata);
+ *   for await (const chunk of generator) { ... }
+ */
+export function streamPageContentWithTrace(
+  prompt: string,
+  isCoreSeed: boolean = false,
+  metadata?: GenerationMetadata
+): { generator: AsyncGenerator<string, void, unknown>; traceId: string | null } {
+  const effectiveMetadata = metadata || { seed: 'unknown', pageNumber: 0, isCoreSeed };
+  const { trace, generation } = createGenerationTrace(effectiveMetadata);
+  
+  // Update generation with input
+  if (generation) {
+    generation.update({ input: { prompt: prompt.slice(0, 2000) + '...' } });
+  }
+
+  const generator = streamPageContentInternal(prompt, isCoreSeed, trace, generation);
+  
+  return {
+    generator,
+    traceId: trace?.id || null,
+  };
+}
+
+/**
+ * Original streaming function signature for backward compatibility
+ */
 export async function* streamPageContent(
   prompt: string,
   isCoreSeed: boolean = false
+): AsyncGenerator<string, void, unknown> {
+  const { generator } = streamPageContentWithTrace(prompt, isCoreSeed);
+  yield* generator;
+}
+
+/**
+ * Internal streaming implementation with Langfuse tracing
+ */
+async function* streamPageContentInternal(
+  prompt: string,
+  isCoreSeed: boolean,
+  trace: any,
+  generation: any
 ): AsyncGenerator<string, void, unknown> {
   const requestId = ++totalRequests;
   streamingRequests++;
@@ -140,6 +290,7 @@ export async function* streamPageContent(
   log.debug(`Stream #${requestId}: Full prompt`, {
     promptLength: prompt.length,
     isCoreSeed,
+    traceId: trace?.id,
     prompt: prompt,
   });
   
@@ -156,6 +307,7 @@ export async function* streamPageContent(
   let thinkingChars = 0;
   let textChars = 0;
   let firstChunkTime: number | null = null;
+  let fullText = '';
   
   try {
     const stream = anthropic.messages.stream({
@@ -205,6 +357,7 @@ export async function* streamPageContent(
           const text = event.delta.text;
           textChars += text.length;
           totalChars += text.length;
+          fullText += text;
           
           if (firstChunkTime === null) {
             firstChunkTime = performance.now() - startTime;
@@ -248,8 +401,28 @@ export async function* streamPageContent(
       totalChunks: chunkCount,
       thinkingChars,
       textChars,
+      traceId: trace?.id,
       avgChunkSize: chunkCount > 0 ? (textChars / chunkCount).toFixed(1) : 0,
     });
+    
+    // End generation with success
+    if (generation) {
+      generation.end({
+        output: fullText,
+        metadata: {
+          thinkingChars,
+          chunkCount,
+          wordCount: fullText.split(/\s+/).length,
+          timeToFirstChunk: firstChunkTime,
+          totalLatency: totalLatencyMs,
+        },
+      });
+    }
+    
+    // Update trace with output
+    if (trace) {
+      trace.update({ output: fullText.slice(0, 500) + '...' });
+    }
     
     log.debug(`Stream #${requestId}: Cumulative LLM stats`, {
       totalRequests,
@@ -269,6 +442,15 @@ export async function* streamPageContent(
       error: error instanceof Error ? error.message : String(error),
       errorType: error instanceof Error ? error.constructor.name : typeof error,
     });
+    
+    // End generation with error
+    if (generation) {
+      generation.end({ 
+        statusMessage: error instanceof Error ? error.message : String(error), 
+        level: 'ERROR' 
+      });
+    }
+    
     throw error;
   }
 }

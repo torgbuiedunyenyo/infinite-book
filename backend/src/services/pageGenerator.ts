@@ -1,6 +1,6 @@
 import { Page, Reference, GenerationContext, GetOrGenerateResult, SequentialAccessError, InvalidSeedAccessError, normalizeSeed } from '../types';
 import { getPage, getPreviousPages, savePage, getBookArc, getChunkSummaries, saveBookArc, getRunningSummary } from './database';
-import { generatePageContent, streamPageContent } from './llm';
+import { generatePageContent, streamPageContentWithTrace, GenerationMetadata } from './llm';
 import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
 import { 
   getContextForGeneration, 
@@ -10,6 +10,7 @@ import {
   ensureChunkSummaryExists,
   ensureRunningSummaryUpdated,
 } from './summaryService';
+import { scheduleEvaluation } from './evaluationService';
 import { buildPrompt, CORE_NARRATIVE_SEED } from '../prompts/templates';
 import { generatorLogger } from './logger';
 
@@ -734,17 +735,25 @@ async function doGeneratePage(
     promptLength: prompt.length,
   });
 
-  // Generate content via LLM
+  // Generate content via LLM with Langfuse tracing
   const isCoreSeed = seed === CORE_NARRATIVE_SEED;
+  const generationMetadata: GenerationMetadata = {
+    seed,
+    pageNumber,
+    isCoreSeed,
+    narrativeMode: bookArc?.narrativeMode,
+  };
+  
   log.info(`Request #${genId}: Calling LLM for content generation`, { isCoreSeed });
   const startTime = performance.now();
-  const content = await generatePageContent(prompt, isCoreSeed);
+  const { content, traceId } = await generatePageContent(prompt, isCoreSeed, generationMetadata);
   const generationTime = performance.now() - startTime;
   
   log.info(`Request #${genId}: LLM generation complete`, {
     generationTime: `${generationTime.toFixed(2)}ms`,
     contentLength: content.length,
     wordCount: content.split(/\s+/).length,
+    traceId,
   });
 
   // Extract metadata
@@ -784,6 +793,7 @@ async function doGeneratePage(
     pageNumber: savedPage.pageNumber,
     discoveredAt: savedPage.discoveredAt,
     totalGenerationTime: `${generationTime.toFixed(2)}ms`,
+    traceId,
     references: savedPage.references.map(r => r.text),
   });
   
@@ -791,6 +801,20 @@ async function doGeneratePage(
   scheduleFactExtraction(savedPage);
   scheduleArcGeneration(savedPage);        // Generate book arc for page 1
   scheduleChunkAndMomentum(savedPage);     // Generate chunk summary and update momentum at pages 5, 10, 15...
+  
+  // Schedule Langfuse evaluation (if tracing is enabled)
+  if (traceId) {
+    scheduleEvaluation(savedPage, traceId, {
+      discrete: true,
+      qualitative: true,  // Run all qualitative evaluations
+      metadata: {
+        seed,
+        pageNumber,
+        isCoreSeed,
+        narrativeMode: bookArc?.narrativeMode,
+      },
+    });
+  }
   
   return savedPage;
 }
@@ -960,14 +984,26 @@ export async function* streamOrGetPage(
       promptLength: prompt.length,
     });
 
-    // Stream content from LLM
+    // Stream content from LLM with Langfuse tracing
     const isCoreSeed = seed === CORE_NARRATIVE_SEED;
+    const streamMetadata: GenerationMetadata = {
+      seed,
+      pageNumber,
+      isCoreSeed,
+      narrativeMode: bookArc?.narrativeMode,
+    };
+    
     log.info(`Stream #${genId}: Starting LLM stream`, { isCoreSeed });
     const startTime = performance.now();
     let fullContent = '';
     let chunkCount = 0;
     
-    for await (const chunk of streamPageContent(prompt, isCoreSeed)) {
+    // Use the new tracing-enabled streaming function
+    const { generator, traceId } = streamPageContentWithTrace(prompt, isCoreSeed, streamMetadata);
+    
+    log.debug(`Stream #${genId}: Stream initialized`, { traceId });
+    
+    for await (const chunk of generator) {
       fullContent += chunk;
       chunkCount++;
       
@@ -990,6 +1026,7 @@ export async function* streamOrGetPage(
       totalChunks: chunkCount,
       contentLength: fullContent.length,
       wordCount: fullContent.split(/\s+/).length,
+      traceId,
     });
 
     // Extract metadata
@@ -1027,6 +1064,7 @@ export async function* streamOrGetPage(
       pageNumber: savedPage.pageNumber,
       discoveredAt: savedPage.discoveredAt,
       totalStreamTime: `${streamTime.toFixed(2)}ms`,
+      traceId,
       references: savedPage.references.map(r => r.text),
     });
     
@@ -1034,6 +1072,20 @@ export async function* streamOrGetPage(
     scheduleFactExtraction(savedPage);
     scheduleArcGeneration(savedPage);        // Generate book arc for page 1
     scheduleChunkAndMomentum(savedPage);     // Generate chunk summary and update momentum at pages 5, 10, 15...
+    
+    // Schedule Langfuse evaluation (if tracing is enabled)
+    if (traceId) {
+      scheduleEvaluation(savedPage, traceId, {
+        discrete: true,
+        qualitative: true,  // Run all qualitative evaluations
+        metadata: {
+          seed,
+          pageNumber,
+          isCoreSeed,
+          narrativeMode: bookArc?.narrativeMode,
+        },
+      });
+    }
     
     // Resolve the promise so any waiters get the result
     resolveGeneration!(savedPage);
