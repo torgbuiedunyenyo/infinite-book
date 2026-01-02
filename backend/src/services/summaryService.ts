@@ -41,6 +41,10 @@ const anthropic = new Anthropic({
 const MODEL = 'claude-opus-4-5-20251101';
 const THINKING_BUDGET = 10000;
 
+// Retry configuration for critical operations
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 5000; // 5 seconds between retries
+
 // ==================== BOOK NARRATIVE ARC ====================
 
 /**
@@ -342,6 +346,224 @@ Return only the momentum summary text, no JSON wrapper or other formatting.
     });
     return null;
   }
+}
+
+// ==================== RETRY-ENABLED GENERATION ====================
+// These functions retry until success - used for critical path generation
+
+/**
+ * Generate chunk summary with retries. Will NOT return null - retries until success.
+ * This is used when a chunk is REQUIRED for page generation to proceed.
+ */
+export async function generateChunkSummaryWithRetry(
+  seed: string,
+  chunkStart: number,
+  chunkEnd: number,
+  pagesContent: Page[],
+  bookArc: BookArc
+): Promise<ChunkSummary> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    log.info(`Chunk summary generation attempt ${attempt}/${MAX_RETRIES}`, {
+      seed,
+      chunkStart,
+      chunkEnd,
+    });
+
+    try {
+      const result = await generateChunkSummary(seed, chunkStart, chunkEnd, pagesContent, bookArc);
+      if (result) {
+        log.info('Chunk summary generated successfully', {
+          seed,
+          chunkStart,
+          chunkEnd,
+          attempt,
+        });
+        return result;
+      }
+      log.warn(`Chunk summary generation returned null (attempt ${attempt}/${MAX_RETRIES})`, {
+        seed,
+        chunkStart,
+        chunkEnd,
+      });
+    } catch (error) {
+      log.error(`Chunk summary generation threw error (attempt ${attempt}/${MAX_RETRIES})`, {
+        seed,
+        chunkStart,
+        chunkEnd,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Wait before retry (except on last attempt)
+    if (attempt < MAX_RETRIES) {
+      log.info(`Waiting ${RETRY_DELAY_MS}ms before retry...`, { seed, chunkStart, chunkEnd });
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+
+  // All retries exhausted - this is a hard failure
+  throw new Error(
+    `Failed to generate chunk summary for "${seed}" pages ${chunkStart}-${chunkEnd} after ${MAX_RETRIES} attempts. ` +
+    `Cannot proceed without chunk summary.`
+  );
+}
+
+/**
+ * Generate running summary with retries. Will NOT return null - retries until success.
+ * This is used when running summary is REQUIRED for page generation to proceed.
+ */
+export async function generateRunningSummaryWithRetry(
+  seed: string,
+  currentPage: number,
+  bookArc: BookArc,
+  previousMomentum: string | null,
+  latestChunkSummary: string
+): Promise<RunningSummary> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    log.info(`Running summary generation attempt ${attempt}/${MAX_RETRIES}`, {
+      seed,
+      currentPage,
+    });
+
+    try {
+      const result = await generateRunningSummary(
+        seed,
+        currentPage,
+        bookArc,
+        previousMomentum,
+        latestChunkSummary
+      );
+      if (result) {
+        log.info('Running summary generated successfully', {
+          seed,
+          currentPage,
+          attempt,
+        });
+        return result;
+      }
+      log.warn(`Running summary generation returned null (attempt ${attempt}/${MAX_RETRIES})`, {
+        seed,
+        currentPage,
+      });
+    } catch (error) {
+      log.error(`Running summary generation threw error (attempt ${attempt}/${MAX_RETRIES})`, {
+        seed,
+        currentPage,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Wait before retry (except on last attempt)
+    if (attempt < MAX_RETRIES) {
+      log.info(`Waiting ${RETRY_DELAY_MS}ms before retry...`, { seed, currentPage });
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+    }
+  }
+
+  // All retries exhausted - this is a hard failure
+  throw new Error(
+    `Failed to generate running summary for "${seed}" at page ${currentPage} after ${MAX_RETRIES} attempts. ` +
+    `Cannot proceed without running summary.`
+  );
+}
+
+/**
+ * Ensure chunk summary exists for a given chunk. If missing, generates it with retries.
+ * Returns the chunk summary (either existing or newly generated).
+ */
+export async function ensureChunkSummaryExists(
+  seed: string,
+  chunkStart: number,
+  chunkEnd: number
+): Promise<ChunkSummary> {
+  // Check if chunk already exists
+  const existingChunks = await getChunkSummaries(seed, chunkEnd + 1);
+  const existing = existingChunks.find(c => c.chunkEnd === chunkEnd);
+  
+  if (existing) {
+    log.debug('Chunk summary already exists', { seed, chunkStart, chunkEnd });
+    return existing;
+  }
+
+  log.info('Chunk summary missing - generating with retries', { seed, chunkStart, chunkEnd });
+
+  // Get required data for generation
+  const bookArc = await getBookArc(seed);
+  if (!bookArc) {
+    throw new Error(`Cannot generate chunk summary - book arc missing for "${seed}"`);
+  }
+
+  const pages = await getPagesRange(seed, chunkStart, chunkEnd);
+  if (pages.length === 0) {
+    throw new Error(`Cannot generate chunk summary - no pages found for "${seed}" pages ${chunkStart}-${chunkEnd}`);
+  }
+
+  // Generate with retries
+  const chunkSummary = await generateChunkSummaryWithRetry(seed, chunkStart, chunkEnd, pages, bookArc);
+  
+  // Save it
+  await saveChunkSummary(chunkSummary);
+  log.info('Chunk summary saved after retry generation', { seed, chunkStart, chunkEnd });
+  
+  return chunkSummary;
+}
+
+/**
+ * Ensure running summary is up-to-date for a given page. If stale or missing, generates it with retries.
+ * Returns the running summary (either existing or newly generated).
+ * 
+ * @param requiredPage - The page number the running summary should be updated to
+ */
+export async function ensureRunningSummaryUpdated(
+  seed: string,
+  requiredPage: number
+): Promise<RunningSummary> {
+  // Check if running summary is already up-to-date
+  const existing = await getRunningSummary(seed);
+  
+  if (existing && existing.lastUpdatedPage >= requiredPage) {
+    log.debug('Running summary already up-to-date', { 
+      seed, 
+      requiredPage, 
+      currentPage: existing.lastUpdatedPage 
+    });
+    return existing;
+  }
+
+  log.info('Running summary stale or missing - generating with retries', { 
+    seed, 
+    requiredPage,
+    currentPage: existing?.lastUpdatedPage ?? 'none',
+  });
+
+  // Get required data for generation
+  const bookArc = await getBookArc(seed);
+  if (!bookArc) {
+    throw new Error(`Cannot generate running summary - book arc missing for "${seed}"`);
+  }
+
+  // Get the chunk summary that corresponds to this page
+  // Running summary at page N uses chunk summary ending at page N
+  const chunkEnd = requiredPage;
+  const chunkStart = chunkEnd - 4;
+  
+  // Ensure the chunk exists first
+  const chunk = await ensureChunkSummaryExists(seed, chunkStart, chunkEnd);
+
+  // Generate running summary with retries
+  const runningSummary = await generateRunningSummaryWithRetry(
+    seed,
+    requiredPage,
+    bookArc,
+    existing?.momentum ?? null,
+    chunk.summary
+  );
+  
+  // Save it
+  await saveRunningSummary(runningSummary);
+  log.info('Running summary saved after retry generation', { seed, requiredPage });
+  
+  return runningSummary;
 }
 
 // ==================== SCHEDULING ====================

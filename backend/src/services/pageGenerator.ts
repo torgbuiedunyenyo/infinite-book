@@ -1,16 +1,23 @@
-import { Page, Reference, GenerationContext, GetOrGenerateResult, SequentialAccessError, InvalidSeedAccessError } from '../types';
-import { getPage, getPreviousPages, savePage, getBookArc, getChunkSummaries, saveBookArc } from './database';
+import { Page, Reference, GenerationContext, GetOrGenerateResult, SequentialAccessError, InvalidSeedAccessError, normalizeSeed } from '../types';
+import { getPage, getPreviousPages, savePage, getBookArc, getChunkSummaries, saveBookArc, getRunningSummary } from './database';
 import { generatePageContent, streamPageContent } from './llm';
 import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
-import { getContextForGeneration, scheduleArcGeneration, scheduleChunkAndMomentum, generateBookArc } from './summaryService';
+import { 
+  getContextForGeneration, 
+  scheduleArcGeneration, 
+  scheduleChunkAndMomentum, 
+  generateBookArc,
+  ensureChunkSummaryExists,
+  ensureRunningSummaryUpdated,
+} from './summaryService';
 import { buildPrompt, CORE_NARRATIVE_SEED } from '../prompts/templates';
 import { generatorLogger } from './logger';
 
-// ==================== CONTEXT WAITING ====================
-// Constants for waiting on required context
-const CONTEXT_POLL_INTERVAL = 2000; // Check every 2 seconds
-const CONTEXT_MAX_WAIT = 120000;    // Wait up to 2 minutes
-const ARC_GENERATION_MAX_RETRIES = 3; // Max attempts to generate book arc
+// ==================== CONTEXT REQUIREMENTS ====================
+// Strong guarantees: no timeouts, retry until success
+const CONTEXT_POLL_INTERVAL = 2000; // Check every 2 seconds (for initial background task completion)
+const INITIAL_WAIT_MS = 30000;      // Wait 30s for background tasks before taking over
+const ARC_GENERATION_MAX_RETRIES = 5; // Max attempts to generate book arc
 
 const log = generatorLogger;
 
@@ -31,13 +38,15 @@ function pageKey(seed: string, pageNumber: number): string {
 }
 
 /**
- * Wait for required narrative context to be ready before proceeding with generation.
+ * Ensure all required narrative context exists before proceeding with generation.
+ * STRONG GUARANTEES: No timeouts. Retries until success or throws.
+ * 
  * This prevents narrative drift by ensuring:
  * - Pages 2+ have the book arc (generated from page 1)
- * - Pages 6+ have the most recent chunk summary
+ * - Pages 6+ have the most recent chunk summary AND running summary
  * 
- * If the book arc doesn't exist after initial wait, actively retries generation
- * instead of just polling. This handles cases where the background task failed.
+ * If context doesn't exist after initial wait for background tasks,
+ * actively generates it with retries. Will NOT proceed without context.
  */
 async function waitForRequiredContext(
   seed: string,
@@ -45,92 +54,94 @@ async function waitForRequiredContext(
 ): Promise<void> {
   const startTime = Date.now();
 
-  // Pages 2+ require the book arc
+  // ==================== BOOK ARC (pages 2+) ====================
   if (pageNumber > 1) {
     let bookArc = await getBookArc(seed);
     
-    // First, wait a bit for background task to complete (30 seconds)
-    const initialWait = 30000;
-    while (!bookArc && (Date.now() - startTime) < initialWait) {
-      log.debug('Waiting for book arc (initial wait)', {
+    // First, wait briefly for background task to complete
+    const waitStart = Date.now();
+    while (!bookArc && (Date.now() - waitStart) < INITIAL_WAIT_MS) {
+      log.debug('Waiting for book arc (background task)', {
         seed,
         pageNumber,
-        elapsed: `${Date.now() - startTime}ms`,
+        elapsed: `${Date.now() - waitStart}ms`,
       });
       
       await new Promise(resolve => setTimeout(resolve, CONTEXT_POLL_INTERVAL));
       bookArc = await getBookArc(seed);
     }
     
-    // If still no arc, actively try to generate it (retry logic)
+    // If still no arc, actively generate it with retries
     if (!bookArc) {
-      log.warn('Book arc not found after initial wait - attempting direct generation', {
+      log.warn('Book arc not found - generating with retries', {
         seed,
         pageNumber,
-        waitedMs: Date.now() - startTime,
+        waitedMs: Date.now() - waitStart,
       });
       
-      // Get page 1 content to regenerate arc
       const page1 = await getPage(seed, 1);
-      if (page1) {
-        for (let attempt = 1; attempt <= ARC_GENERATION_MAX_RETRIES; attempt++) {
-          log.info(`Attempting book arc generation (attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES})`, {
+      if (!page1) {
+        throw new Error(`Cannot generate book arc - page 1 not found for "${seed}"`);
+      }
+      
+      for (let attempt = 1; attempt <= ARC_GENERATION_MAX_RETRIES; attempt++) {
+        log.info(`Book arc generation attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES}`, {
+          seed,
+          pageNumber,
+        });
+        
+        try {
+          const arc = await generateBookArc(seed, page1.content);
+          if (arc) {
+            await saveBookArc(arc);
+            log.info('Book arc generated and saved', { seed, attempt });
+            bookArc = arc;
+            break;
+          }
+          log.warn(`Book arc generation returned null (attempt ${attempt})`, { seed });
+        } catch (error) {
+          log.error(`Book arc generation failed (attempt ${attempt})`, {
             seed,
-            pageNumber,
+            error: error instanceof Error ? error.message : String(error),
           });
-          
-          try {
-            const arc = await generateBookArc(seed, page1.content);
-            if (arc) {
-              await saveBookArc(arc);
-              log.info('Book arc generated and saved via retry', { seed });
-              bookArc = arc;
-              break;
-            } else {
-              log.warn(`Book arc generation returned null (attempt ${attempt})`, { seed });
-            }
-          } catch (error) {
-            log.error(`Book arc generation failed (attempt ${attempt})`, {
-              seed,
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
-          
-          // Wait before retry
-          if (attempt < ARC_GENERATION_MAX_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-          }
         }
-      } else {
-        log.error('Cannot generate book arc - page 1 not found!', { seed, pageNumber });
+        
+        if (attempt < ARC_GENERATION_MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      }
+      
+      if (!bookArc) {
+        throw new Error(
+          `Failed to obtain book arc for "${seed}" after ${ARC_GENERATION_MAX_RETRIES} attempts. ` +
+          `Cannot generate page ${pageNumber} without narrative guidance.`
+        );
       }
     }
     
-    if (!bookArc) {
-      // This is now a hard failure - we tried everything
-      throw new Error(`Failed to obtain book arc for "${seed}" after ${ARC_GENERATION_MAX_RETRIES} retry attempts. Cannot generate page ${pageNumber} without narrative guidance.`);
-    } else {
-      log.debug('Book arc now available', { seed, pageNumber });
-    }
+    log.debug('Book arc confirmed available', { seed, pageNumber });
   }
 
-  // Pages 6+ require the most recent chunk summary
+  // ==================== CHUNK & RUNNING SUMMARY (pages 6+) ====================
   if (pageNumber > 5) {
-    // Calculate the most recent completed chunk end
-    // Page 6-10 needs chunk 1-5 (end=5)
-    // Page 11-15 needs chunk 6-10 (end=10)
+    // Calculate the most recent completed chunk
+    // Page 6-10 needs chunk 1-5 (end=5), page 11-15 needs chunk 6-10 (end=10), etc.
     const requiredChunkEnd = Math.floor((pageNumber - 1) / 5) * 5;
     
     if (requiredChunkEnd >= 5) {
+      const requiredChunkStart = requiredChunkEnd - 4;
+      
+      // First, wait briefly for background task to complete
       let chunks = await getChunkSummaries(seed, pageNumber);
       let hasRequiredChunk = chunks.some(c => c.chunkEnd === requiredChunkEnd);
       
-      while (!hasRequiredChunk && (Date.now() - startTime) < CONTEXT_MAX_WAIT) {
-        log.debug('Waiting for chunk summary', {
+      const waitStart = Date.now();
+      while (!hasRequiredChunk && (Date.now() - waitStart) < INITIAL_WAIT_MS) {
+        log.debug('Waiting for chunk summary (background task)', {
           seed,
           pageNumber,
           requiredChunkEnd,
-          elapsed: `${Date.now() - startTime}ms`,
+          elapsed: `${Date.now() - waitStart}ms`,
         });
         
         await new Promise(resolve => setTimeout(resolve, CONTEXT_POLL_INTERVAL));
@@ -138,24 +149,52 @@ async function waitForRequiredContext(
         hasRequiredChunk = chunks.some(c => c.chunkEnd === requiredChunkEnd);
       }
       
+      // If still no chunk, actively generate it with retries (will throw on failure)
       if (!hasRequiredChunk) {
-        log.warn('Timeout waiting for chunk summary - proceeding anyway', {
+        log.warn('Chunk summary not found - generating with retries', {
           seed,
           pageNumber,
+          requiredChunkStart,
           requiredChunkEnd,
-          waitedMs: Date.now() - startTime,
+          waitedMs: Date.now() - waitStart,
         });
-      } else {
-        log.debug('Chunk summary now available', { seed, pageNumber, requiredChunkEnd });
+        
+        await ensureChunkSummaryExists(seed, requiredChunkStart, requiredChunkEnd);
       }
+      
+      log.debug('Chunk summary confirmed available', { seed, pageNumber, requiredChunkEnd });
+      
+      // Now ensure running summary is up-to-date for this chunk boundary
+      // Running summary should be updated at the same page as chunk boundary
+      const runningSummary = await getRunningSummary(seed);
+      
+      if (!runningSummary || runningSummary.lastUpdatedPage < requiredChunkEnd) {
+        log.warn('Running summary stale or missing - generating with retries', {
+          seed,
+          pageNumber,
+          requiredPage: requiredChunkEnd,
+          currentPage: runningSummary?.lastUpdatedPage ?? 'none',
+        });
+        
+        await ensureRunningSummaryUpdated(seed, requiredChunkEnd);
+      }
+      
+      log.debug('Running summary confirmed up-to-date', { seed, pageNumber, requiredChunkEnd });
     }
   }
+  
+  const totalTime = Date.now() - startTime;
+  log.info('All required context confirmed', {
+    seed,
+    pageNumber,
+    totalTimeMs: totalTime,
+  });
 }
 
 /**
  * Generator version of waitForRequiredContext that yields waiting events.
  * Used by streaming endpoint to inform the frontend of delays.
- * If the book arc doesn't exist after initial wait, actively retries generation.
+ * STRONG GUARANTEES: No timeouts. Retries until success or throws.
  */
 async function* waitForRequiredContextWithEvents(
   seed: string,
@@ -164,13 +203,13 @@ async function* waitForRequiredContextWithEvents(
   const startTime = Date.now();
   let yieldedWaiting = false;
 
-  // Pages 2+ require the book arc
+  // ==================== BOOK ARC (pages 2+) ====================
   if (pageNumber > 1) {
     let bookArc = await getBookArc(seed);
     
-    // First, wait a bit for background task to complete (30 seconds)
-    const initialWait = 30000;
-    while (!bookArc && (Date.now() - startTime) < initialWait) {
+    // First, wait briefly for background task to complete
+    const waitStart = Date.now();
+    while (!bookArc && (Date.now() - waitStart) < INITIAL_WAIT_MS) {
       if (!yieldedWaiting) {
         log.info('Yielding waiting event for book arc', { seed, pageNumber });
         yield { type: 'waiting', message: 'Preparing narrative context...' };
@@ -180,19 +219,19 @@ async function* waitForRequiredContextWithEvents(
       log.debug('Waiting for book arc (streaming)', {
         seed,
         pageNumber,
-        elapsed: `${Date.now() - startTime}ms`,
+        elapsed: `${Date.now() - waitStart}ms`,
       });
       
       await new Promise(resolve => setTimeout(resolve, CONTEXT_POLL_INTERVAL));
       bookArc = await getBookArc(seed);
     }
     
-    // If still no arc, actively try to generate it (retry logic)
+    // If still no arc, actively generate it with retries
     if (!bookArc) {
-      log.warn('Book arc not found after initial wait (streaming) - attempting direct generation', {
+      log.warn('Book arc not found - generating with retries (streaming)', {
         seed,
         pageNumber,
-        waitedMs: Date.now() - startTime,
+        waitedMs: Date.now() - waitStart,
       });
       
       if (!yieldedWaiting) {
@@ -200,57 +239,60 @@ async function* waitForRequiredContextWithEvents(
         yieldedWaiting = true;
       }
       
-      // Get page 1 content to regenerate arc
       const page1 = await getPage(seed, 1);
-      if (page1) {
-        for (let attempt = 1; attempt <= ARC_GENERATION_MAX_RETRIES; attempt++) {
-          log.info(`Attempting book arc generation (streaming, attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES})`, {
-            seed,
-            pageNumber,
-          });
-          
-          try {
-            const arc = await generateBookArc(seed, page1.content);
-            if (arc) {
-              await saveBookArc(arc);
-              log.info('Book arc generated and saved via retry (streaming)', { seed });
-              bookArc = arc;
-              break;
-            } else {
-              log.warn(`Book arc generation returned null (streaming, attempt ${attempt})`, { seed });
-            }
-          } catch (error) {
-            log.error(`Book arc generation failed (streaming, attempt ${attempt})`, {
-              seed,
-              error: error instanceof Error ? error.message : String(error),
-            });
-          }
-          
-          // Wait before retry
-          if (attempt < ARC_GENERATION_MAX_RETRIES) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-          }
-        }
-      } else {
-        log.error('Cannot generate book arc - page 1 not found! (streaming)', { seed, pageNumber });
+      if (!page1) {
+        throw new Error(`Cannot generate book arc - page 1 not found for "${seed}"`);
       }
-    }
-    
-    if (!bookArc) {
-      // This is now a hard failure - we tried everything
-      throw new Error(`Failed to obtain book arc for "${seed}" after ${ARC_GENERATION_MAX_RETRIES} retry attempts. Cannot generate page ${pageNumber} without narrative guidance.`);
+      
+      for (let attempt = 1; attempt <= ARC_GENERATION_MAX_RETRIES; attempt++) {
+        log.info(`Book arc generation attempt ${attempt}/${ARC_GENERATION_MAX_RETRIES} (streaming)`, {
+          seed,
+          pageNumber,
+        });
+        
+        try {
+          const arc = await generateBookArc(seed, page1.content);
+          if (arc) {
+            await saveBookArc(arc);
+            log.info('Book arc generated and saved (streaming)', { seed, attempt });
+            bookArc = arc;
+            break;
+          }
+          log.warn(`Book arc generation returned null (streaming, attempt ${attempt})`, { seed });
+        } catch (error) {
+          log.error(`Book arc generation failed (streaming, attempt ${attempt})`, {
+            seed,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        
+        if (attempt < ARC_GENERATION_MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+      }
+      
+      if (!bookArc) {
+        throw new Error(
+          `Failed to obtain book arc for "${seed}" after ${ARC_GENERATION_MAX_RETRIES} attempts. ` +
+          `Cannot generate page ${pageNumber} without narrative guidance.`
+        );
+      }
     }
   }
 
-  // Pages 6+ require the most recent chunk summary
+  // ==================== CHUNK & RUNNING SUMMARY (pages 6+) ====================
   if (pageNumber > 5) {
     const requiredChunkEnd = Math.floor((pageNumber - 1) / 5) * 5;
     
     if (requiredChunkEnd >= 5) {
+      const requiredChunkStart = requiredChunkEnd - 4;
+      
+      // First, wait briefly for background task to complete
       let chunks = await getChunkSummaries(seed, pageNumber);
       let hasRequiredChunk = chunks.some(c => c.chunkEnd === requiredChunkEnd);
       
-      while (!hasRequiredChunk && (Date.now() - startTime) < CONTEXT_MAX_WAIT) {
+      const waitStart = Date.now();
+      while (!hasRequiredChunk && (Date.now() - waitStart) < INITIAL_WAIT_MS) {
         if (!yieldedWaiting) {
           log.info('Yielding waiting event for chunk summary', { seed, pageNumber, requiredChunkEnd });
           yield { type: 'waiting', message: 'Preparing chapter summary...' };
@@ -261,7 +303,7 @@ async function* waitForRequiredContextWithEvents(
           seed,
           pageNumber,
           requiredChunkEnd,
-          elapsed: `${Date.now() - startTime}ms`,
+          elapsed: `${Date.now() - waitStart}ms`,
         });
         
         await new Promise(resolve => setTimeout(resolve, CONTEXT_POLL_INTERVAL));
@@ -269,16 +311,55 @@ async function* waitForRequiredContextWithEvents(
         hasRequiredChunk = chunks.some(c => c.chunkEnd === requiredChunkEnd);
       }
       
+      // If still no chunk, actively generate it with retries (will throw on failure)
       if (!hasRequiredChunk) {
-        log.warn('Timeout waiting for chunk summary (streaming) - proceeding anyway', {
+        log.warn('Chunk summary not found - generating with retries (streaming)', {
           seed,
           pageNumber,
+          requiredChunkStart,
           requiredChunkEnd,
-          waitedMs: Date.now() - startTime,
+          waitedMs: Date.now() - waitStart,
         });
+        
+        if (!yieldedWaiting) {
+          yield { type: 'waiting', message: 'Generating chapter summary...' };
+          yieldedWaiting = true;
+        }
+        
+        await ensureChunkSummaryExists(seed, requiredChunkStart, requiredChunkEnd);
       }
+      
+      log.debug('Chunk summary confirmed available (streaming)', { seed, pageNumber, requiredChunkEnd });
+      
+      // Now ensure running summary is up-to-date
+      const runningSummary = await getRunningSummary(seed);
+      
+      if (!runningSummary || runningSummary.lastUpdatedPage < requiredChunkEnd) {
+        log.warn('Running summary stale or missing - generating with retries (streaming)', {
+          seed,
+          pageNumber,
+          requiredPage: requiredChunkEnd,
+          currentPage: runningSummary?.lastUpdatedPage ?? 'none',
+        });
+        
+        if (!yieldedWaiting) {
+          yield { type: 'waiting', message: 'Updating story momentum...' };
+          yieldedWaiting = true;
+        }
+        
+        await ensureRunningSummaryUpdated(seed, requiredChunkEnd);
+      }
+      
+      log.debug('Running summary confirmed up-to-date (streaming)', { seed, pageNumber, requiredChunkEnd });
     }
   }
+  
+  const totalTime = Date.now() - startTime;
+  log.info('All required context confirmed (streaming)', {
+    seed,
+    pageNumber,
+    totalTimeMs: totalTime,
+  });
 }
 
 function extractOpening(content: string): string {
@@ -376,19 +457,25 @@ function extractReferences(content: string): Reference[] {
 
   while ((match = pattern.exec(content)) !== null) {
     const text = match[1];
-    if (!references.some((ref) => ref.text === text)) {
+    // Normalize the seed to Title Case for consistent book naming
+    const normalizedSeed = normalizeSeed(text);
+    
+    // Check for duplicates using normalized seed (case-insensitive dedup)
+    if (!references.some((ref) => ref.seed === normalizedSeed)) {
       references.push({
-        text: text,
-        seed: text,
+        text: text,           // Preserve original text for display
+        seed: normalizedSeed, // Use normalized seed for database lookup
       });
       log.debug('Reference found', {
         text,
+        normalizedSeed,
         position: match.index,
         referenceNumber: references.length,
       });
     } else {
       log.debug('Duplicate reference skipped', {
         text,
+        normalizedSeed,
         position: match.index,
       });
     }
@@ -396,7 +483,7 @@ function extractReferences(content: string): Reference[] {
   
   log.info('References extraction complete', {
     totalReferences: references.length,
-    uniqueReferences: references.map(r => r.text),
+    uniqueReferences: references.map(r => ({ text: r.text, seed: r.seed })),
   });
 
   return references;

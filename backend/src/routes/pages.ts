@@ -3,7 +3,7 @@ import { getOrGeneratePage, streamOrGetPage, ReferrerContext, getGeneratorStats 
 import { getPage, getPoolStats, getAllBooks, getHighestPageNumber } from '../services/database';
 import { getLLMStats } from '../services/llm';
 import { routesLogger } from '../services/logger';
-import { SequentialAccessError, InvalidSeedAccessError } from '../types';
+import { SequentialAccessError, InvalidSeedAccessError, normalizeSeed } from '../types';
 import { CANONICAL_SEEDS } from '../prompts/templates';
 
 const log = routesLogger;
@@ -19,10 +19,14 @@ let statsRequests = 0;
 let errorCount = 0;
 
 async function parseReferrerContext(req: Request): Promise<ReferrerContext | undefined> {
-  const referrerSeed = req.query.referrerSeed as string | undefined;
+  const rawReferrerSeed = req.query.referrerSeed as string | undefined;
   const referrerPage = req.query.referrerPage ? parseInt(req.query.referrerPage as string, 10) : undefined;
   
+  // Normalize referrer seed to Title Case for consistent book naming
+  const referrerSeed = rawReferrerSeed ? normalizeSeed(rawReferrerSeed) : undefined;
+  
   log.debug('Parsing referrer context from request', {
+    rawReferrerSeed,
     referrerSeed,
     referrerPage,
     hasReferrerSeed: !!referrerSeed,
@@ -169,10 +173,14 @@ router.get('/page', async (req: Request, res: Response) => {
   const requestStart = performance.now();
   
   try {
-    const seed = req.query.seed as string;
+    const rawSeed = req.query.seed as string;
     const pageNumber = parseInt(req.query.page as string, 10);
     
+    // Normalize seed to Title Case for consistent book naming
+    const seed = rawSeed ? normalizeSeed(rawSeed) : rawSeed;
+    
     log.info('GET /page request received', {
+      rawSeed,
       seed,
       pageNumber,
       rawPage: req.query.page,
@@ -280,12 +288,16 @@ router.get('/page/stream', async (req: Request, res: Response) => {
   const requestStart = performance.now();
   
   try {
-    const seed = req.query.seed as string;
+    const rawSeed = req.query.seed as string;
     const pageNumber = parseInt(req.query.page as string, 10);
+    
+    // Normalize seed to Title Case for consistent book naming
+    const seed = rawSeed ? normalizeSeed(rawSeed) : rawSeed;
     
     log.separator(`STREAM REQUEST: "${seed}" p.${pageNumber}`);
     
     log.info('GET /page/stream request received', {
+      rawSeed,
       seed,
       pageNumber,
       totalStreamRequests: streamRequests,
@@ -471,10 +483,14 @@ router.get('/page/check', async (req: Request, res: Response) => {
   checkRequests++;
   
   try {
-    const seed = req.query.seed as string;
+    const rawSeed = req.query.seed as string;
     const pageNumber = parseInt(req.query.page as string, 10);
     
+    // Normalize seed to Title Case for consistent book naming
+    const seed = rawSeed ? normalizeSeed(rawSeed) : rawSeed;
+    
     log.info('GET /page/check request received', {
+      rawSeed,
       seed,
       pageNumber,
       totalCheckRequests: checkRequests,
@@ -515,9 +531,12 @@ router.get('/page/check', async (req: Request, res: Response) => {
 // Get the highest existing page number for a seed
 router.get('/page/highest', async (req: Request, res: Response) => {
   try {
-    const seed = req.query.seed as string;
+    const rawSeed = req.query.seed as string;
     
-    log.info('GET /page/highest request received', { seed });
+    // Normalize seed to Title Case for consistent book naming
+    const seed = rawSeed ? normalizeSeed(rawSeed) : rawSeed;
+    
+    log.info('GET /page/highest request received', { rawSeed, seed });
 
     if (!seed) {
       log.warn('Missing seed parameter');

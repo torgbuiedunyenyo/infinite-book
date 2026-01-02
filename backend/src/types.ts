@@ -15,6 +15,60 @@ export interface Reference {
   seed: string;
 }
 
+// ==================== SEED NORMALIZATION ====================
+
+// Small words that stay lowercase in titles (unless first word)
+const SMALL_WORDS = new Set([
+  'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 
+  'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet'
+]);
+
+/**
+ * Normalize a seed to Title Case (like a book title).
+ * This ensures consistent seed handling across the library.
+ * 
+ * Rules:
+ * - First word is always capitalized
+ * - Small words (a, an, the, of, etc.) stay lowercase unless first
+ * - Words with 2+ uppercase letters are preserved (acronyms like PRMTTs, NASA)
+ * 
+ * Examples:
+ *   "clef" → "Clef"
+ *   "the shop" → "The Shop"
+ *   "PRMTTs" → "PRMTTs" (preserved - has multiple uppercase)
+ *   "The Shape of Time" → "The Shape of Time" (of stays lowercase)
+ *   "the underground" → "The Underground"
+ */
+export function normalizeSeed(seed: string): string {
+  if (!seed) return seed;
+  
+  return seed
+    .split(' ')
+    .map((word, index) => {
+      // Count uppercase letters in the word
+      const upperCount = (word.match(/[A-Z]/g) || []).length;
+      
+      // If word has 2+ uppercase letters (like PRMTTs, NASA), preserve it as-is
+      if (upperCount >= 2) {
+        return word;
+      }
+      
+      // First word is always capitalized
+      if (index === 0) {
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }
+      
+      // Small words stay lowercase (unless first word, handled above)
+      if (SMALL_WORDS.has(word.toLowerCase())) {
+        return word.toLowerCase();
+      }
+      
+      // Title case: capitalize first letter, lowercase rest
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
 export interface CanonicalFact {
   id?: number;
   category: 'character' | 'place' | 'event' | 'object' | 'relationship';
