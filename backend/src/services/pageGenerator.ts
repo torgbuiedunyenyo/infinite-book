@@ -648,9 +648,10 @@ async function doGeneratePage(
   });
 
   // Generate content via LLM
-  log.info(`Request #${genId}: Calling LLM for content generation`);
+  const isCoreSeed = seed === CORE_NARRATIVE_SEED;
+  log.info(`Request #${genId}: Calling LLM for content generation`, { isCoreSeed });
   const startTime = performance.now();
-  const content = await generatePageContent(prompt);
+  const content = await generatePageContent(prompt, isCoreSeed);
   const generationTime = performance.now() - startTime;
   
   log.info(`Request #${genId}: LLM generation complete`, {
@@ -873,12 +874,13 @@ export async function* streamOrGetPage(
     });
 
     // Stream content from LLM
-    log.info(`Stream #${genId}: Starting LLM stream`);
+    const isCoreSeed = seed === CORE_NARRATIVE_SEED;
+    log.info(`Stream #${genId}: Starting LLM stream`, { isCoreSeed });
     const startTime = performance.now();
     let fullContent = '';
     let chunkCount = 0;
     
-    for await (const chunk of streamPageContent(prompt)) {
+    for await (const chunk of streamPageContent(prompt, isCoreSeed)) {
       fullContent += chunk;
       chunkCount++;
       

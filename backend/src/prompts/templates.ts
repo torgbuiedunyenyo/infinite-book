@@ -95,10 +95,10 @@ The subject determines the focus. The world remains consistent.
 // ==================== MODULAR PROMPT COMPONENTS ====================
 
 /**
- * WORLD_ESSENCE: The complete world document.
- * Used by page generation AND extraction services to maintain consistency.
+ * WORLD_ESSENCE_BASE: The world document WITHOUT the core narrative summary.
+ * Used for core narrative generation (where we use the detailed arc instead).
  */
-export const WORLD_ESSENCE = `<world_essence>
+export const WORLD_ESSENCE_BASE = `<world_essence>
 World Essence
 
 ## The Nature of Time
@@ -237,7 +237,13 @@ In 2025 Oakland, shops sell clef, a mildly relaxing drink popular with future to
 **Temporal prejudice** shapes daily life. Past people in the future face assumptions of economic desperation, cultural backwardness, criminal tendencies. Slurs exist. Relationships between people of different eras attract suspicion—assumed to be transactional. Past people cluster in specific neighborhoods, work specific jobs, exist in legal gray zones even with legitimate documentation.
 
 At the far edges of the Mystas axis lies unmapped territory. The currents there are fast, turbulent, constantly shifting—not more dangerous in principle, but practically treacherous without reliable maps. Travelers risk becoming lost, carried by currents they can't predict toward regions no one has charted. The PRMTT companies maintain research stations nearby, slowly extending their maps. The company that charts the edges first will control access to whatever lies beyond.
+</world_essence>`;
 
+/**
+ * CORE_NARRATIVE_SECTION: The core narrative summary for inset narratives.
+ * Inset narratives need this context; the core narrative itself uses the detailed arc.
+ */
+const CORE_NARRATIVE_SECTION = `
 ## The Core Narrative
 
 The following is THE central story of this library. All books exist within Jay's world. The core narrative follows Jay directly. Inset narratives (books reached via [[references]]) explore other corners of this world—they don't need to feature Jay, but they exist in the same world and must never contradict established facts.
@@ -260,8 +266,13 @@ He finds Tan. She'd gone to the Mystas edges on an adventure, curious about the 
 
 Jay forgives her. But Tan doesn't want to continue the relationship. The work of truly seeing someone from a different era, of accounting for the power between them—it's not something she's willing to do.
 
-Jay returns to 2025 Oakland, to his shop. He's traveled further than most people from his era ever will. He's survived. But he's back where he started, selling clef to tourists, watching them come and go.
-</world_essence>`;
+Jay returns to 2025 Oakland, to his shop. He's traveled further than most people from his era ever will. He's survived. But he's back where he started, selling clef to tourists, watching them come and go.`;
+
+/**
+ * WORLD_ESSENCE: The complete world document (for inset narratives).
+ * Used by extraction services and inset narrative generation.
+ */
+export const WORLD_ESSENCE = WORLD_ESSENCE_BASE + CORE_NARRATIVE_SECTION;
 
 /**
  * NARRATIVE_CONTEXT: Comprehensive guidance for correctly interpreting fiction in this world.
@@ -347,68 +358,45 @@ export const EXTRACTION_SYSTEM = `${WORLD_ESSENCE}
 ${NARRATIVE_CONTEXT}`;
 
 /**
- * SYSTEM_PROMPT: Full system prompt for page generation.
- * This is the creative writing prompt, distinct from extraction prompts.
+ * SYSTEM_PROMPT_SUFFIX: The part of the system prompt after world essence.
+ * Separated so we can compose different versions.
  */
-export const SYSTEM_PROMPT = `${WORLD_ESSENCE}
-
-<library_system>
-This is a page generation system for an interconnected library of books, all set within the world above. You generate individual pages on demand. Once a page is generated, it is stored permanently and returned unchanged on all future requests—consistency is critical.
-
-**Navigation:**
-- Each page has an address: (seed, page_number)
-- The seed is a string that becomes the book's title/subject
-- Users flip forward/backward (page numbers) or tap [[references]] to jump to new books
-- Tapping [[reference text]] navigates to page 1 of a book with that seed
-</library_system>
+const SYSTEM_PROMPT_SUFFIX = `
 
 <narrative_principles>
 **You are writing fiction, not encyclopedia entries.**
 
-IMPORTANT:**Most of the time, you should never explicitly state or mention things in <world_essence> unless it is unavoidably critical to the story. Fish don't usually talk about water, and these characters don't usually talk about the "Mystas" or "Phantas" axes -- they just talk about moving.**
-
-IMPORTANT: **Show through action and consequence. Never explain through exposition.**
+**IMPORTANT: Show through action and consequence. Never explain through exposition.**
 - Characters live in this world. They don't explain it.
 - A future person's confusion with a phone reveals neural interfaces without naming them.
 - Jay's instinctive deference to tourists shows the power dynamic without stating it.
-- The fatigue of temporal travel is shown through bodily details, not exposition.
-- BAD: "I left it here three days from now. The self-healing property means it had to already be here when I needed it." (explicitly explaining the self-healing property)
-- GOOD: "I left it here three days from now. Glad its still here." (reader infers the self-healing property from the context)
+- BAD: "The self-healing property means it had to already be here." (explaining mechanics)
+- GOOD: "I left it here three days from now. Glad it's still here." (reader infers)
+- IMPORTANT: Fish don't talk about water. These characters don't talk about "Mystas" or "Phantas" axes—they just talk about moving. Don't name world mechanics unless unavoidable.
 
 **Tension carries across pages.**
 - Each page should pull the reader forward, not offer resolution.
 - End mid-beat. The page should feel incomplete.
-- Conflict develops; it doesn't resolve within a single page.
+- IMPORTANT: Conflict develops; it doesn't resolve within a single page.
+- Never end on peaceful reflection or tidy summary.
+- Never write vignettes—isolated moments without forward momentum.
 
 **Different books have different voices.**
 - A book about Jay should feel different from a book about Tan's father.
-- A book framed as a document (memo, form, letter) should read as that document.
+- A book framed as a document should read as that document.
 - A book about a place should immerse in sensory detail.
 - Let the seed determine the narrative mode.
 
 **Seed sovereignty.** The seed determines what this book is about.
 - If the seed names a person → follow that person
-- If the seed names a place → immerse in that place (Jay may appear if he'd naturally be there)
+- If the seed names a place → immerse in that place
 - If the seed names an event → unfold that event
 - If the seed names a concept or document → explore through that lens
 
-The world is larger than any one story. Jay and Tan's narrative is a thread, not the fabric.
+**IMPORTANT: Never use false time travel tropes** from the earlier section. No loops, no meeting yourself, no paradoxes, no butterfly effects, no mystical weirdness.
 
 This library is one coherent world—never contradict established facts.
 </narrative_principles>
-
-<anti_patterns>
-**NEVER do these things:**
-- Never explain how time travel works didactically
-- Never have characters exposit the political situation to each other
-- Never use narrator voice to describe world rules ("In this world...", "As everyone knew...")
-- Never resolve conflict within a single page
-- Never end on a note of peaceful reflection or tidy summary
-- Never write vignettes—isolated moments with no forward momentum
-- Never have characters think in thesis statements about their situation
-- DO NOT explicitly state or mention things in <world_essence> unless it is unavoidably critical to the story. Fish don't usually talk about water, and these characters don't usually talk about the "Mystas" or "Phantas" axes, or the "self-healing property" of time, etc. Let these things exist in the background and be implied through action and consequence.
-- Never use any false tropes from the Time Travel Tropes section.
-</anti_patterns>
 
 <references>
 References ([[double brackets]]) must point to things that exist within this world. Don't take these verbatim -- these are just a few examples:
@@ -425,6 +413,25 @@ References should feel natural within the prose—things characters would actual
 <task>
 Generate page content for this system. Write fiction that lives inside this world.
 </task>`;
+
+/**
+ * SYSTEM_PROMPT: Full system prompt for inset narratives (includes core narrative summary).
+ * For backwards compatibility with extraction services.
+ */
+export const SYSTEM_PROMPT = WORLD_ESSENCE + SYSTEM_PROMPT_SUFFIX;
+
+/**
+ * SYSTEM_PROMPT_CORE: System prompt for core narrative (excludes core narrative summary).
+ * The core narrative gets the detailed arc instead.
+ */
+export const SYSTEM_PROMPT_CORE = WORLD_ESSENCE_BASE + SYSTEM_PROMPT_SUFFIX;
+
+/**
+ * Get the appropriate system prompt based on whether this is the core narrative.
+ */
+export function getSystemPrompt(isCoreSeed: boolean): string {
+  return isCoreSeed ? SYSTEM_PROMPT_CORE : SYSTEM_PROMPT;
+}
 
 // ==================== PROMPT BUILDER ====================
 
@@ -445,12 +452,20 @@ export function buildPrompt(context: GenerationContext): string {
   let prompt = '';
 
   // ==================== BOOK NARRATIVE ARC ====================
-  // Rich 150-250 word document about the book's identity (pages > 1)
-  if (pageNumber > 1 && bookArc) {
+  // For core narrative: use predefined arc even on page 1
+  // For inset narratives: arc is generated from page 1, so only available on pages > 1
+  const isCoreSeed = seed === CORE_NARRATIVE_SEED;
+  const effectiveArc = isCoreSeed ? CORE_NARRATIVE_ARC : bookArc;
+  
+  if (effectiveArc && (pageNumber > 1 || isCoreSeed)) {
     prompt += `<book_narrative_arc>\n`;
-    prompt += `This is page ${pageNumber} of "${seed}". Here is this book's narrative DNA:\n\n`;
-    prompt += `${bookArc.narrativeArc}\n\n`;
-    prompt += `<narrative_mode>${bookArc.narrativeMode}</narrative_mode>\n`;
+    if (pageNumber === 1 && isCoreSeed) {
+      prompt += `This is page 1 of the core narrative "${seed}". This story has a predefined arc:\n\n`;
+    } else {
+      prompt += `This is page ${pageNumber} of "${seed}". Here is this book's narrative DNA:\n\n`;
+    }
+    prompt += `${effectiveArc.narrativeArc}\n\n`;
+    prompt += `<narrative_mode>${effectiveArc.narrativeMode}</narrative_mode>\n`;
     prompt += `</book_narrative_arc>\n\n`;
   }
 
@@ -526,15 +541,21 @@ export function buildPrompt(context: GenerationContext): string {
     prompt += `This is PAGE 1 of a new book. The referrer provides context for what "${seed}" means in this world.\n`;
     prompt += `Begin this book with its own voice and entry point—not a continuation of the referrer.\n`;
     prompt += `The seed "${seed}" suggests the book's subject, perspective, or framing.\n`;
+  } else if (pageNumber === 1 && isCoreSeed) {
+    // Core narrative page 1 - has predefined arc
+    prompt += `This is page 1 of the core narrative "${seed}".\n`;
+    prompt += `Follow the narrative arc above. Begin at PART ONE: the meeting and courtship.\n`;
+    prompt += `Establish Jay in his shop in 2025 Oakland. This is where the story starts.\n`;
   } else if (pageNumber === 1) {
+    // Inset narrative page 1 - no arc yet
     prompt += `This is page 1 of "${seed}". No other pages exist yet.\n`;
     prompt += `Establish voice, perspective, and situation. Begin mid-action or mid-thought.\n`;
     prompt += `The seed suggests what this book is about—interpret it within the world.\n`;
   }
 
-  // Remind about narrative arc for coherence
-  if (pageNumber > 1 && bookArc) {
-    prompt += `\nRemember: This is a ${bookArc.narrativeMode} narrative. Stay true to the narrative arc. Don't drift from the book's established identity.\n`;
+  // Remind about narrative arc for coherence (pages > 1, or core narrative page 1)
+  if (effectiveArc && (pageNumber > 1 || isCoreSeed)) {
+    prompt += `\nRemember: This is a ${effectiveArc.narrativeMode} narrative. Stay true to the narrative arc. Don't drift from the book's established identity.\n`;
   }
 
   prompt += `</instructions>\n\n`;

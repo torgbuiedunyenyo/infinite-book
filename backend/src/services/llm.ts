@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { SYSTEM_PROMPT } from '../prompts/templates';
+import { SYSTEM_PROMPT, getSystemPrompt } from '../prompts/templates';
 import { llmLogger } from './logger';
 
 const log = llmLogger;
@@ -26,16 +26,19 @@ const MODEL = 'claude-opus-4-5-20251101';
 const MAX_TOKENS = 64000;
 const THINKING_BUDGET = 15000;
 
-export async function generatePageContent(prompt: string): Promise<string> {
+export async function generatePageContent(prompt: string, isCoreSeed: boolean = false): Promise<string> {
   // Must use streaming internally because extended thinking can exceed 10-minute timeout
   const requestId = ++totalRequests;
   nonStreamingRequests++;
+  
+  const systemPrompt = getSystemPrompt(isCoreSeed);
   
   log.separator(`LLM REQUEST #${requestId} (streaming-collect)`);
   
   log.debug(`Request #${requestId}: Prompt details`, {
     promptLength: prompt.length,
-    systemPromptLength: SYSTEM_PROMPT.length,
+    systemPromptLength: systemPrompt.length,
+    isCoreSeed,
     promptPreview: prompt.slice(0, 500) + '...',
   });
   
@@ -54,7 +57,7 @@ export async function generatePageContent(prompt: string): Promise<string> {
     const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       thinking: {
         type: 'enabled',
         budget_tokens: THINKING_BUDGET,
@@ -124,15 +127,19 @@ export async function generatePageContent(prompt: string): Promise<string> {
 }
 
 export async function* streamPageContent(
-  prompt: string
+  prompt: string,
+  isCoreSeed: boolean = false
 ): AsyncGenerator<string, void, unknown> {
   const requestId = ++totalRequests;
   streamingRequests++;
+  
+  const systemPrompt = getSystemPrompt(isCoreSeed);
   
   log.separator(`LLM STREAMING REQUEST #${requestId}`);
   
   log.debug(`Stream #${requestId}: Full prompt`, {
     promptLength: prompt.length,
+    isCoreSeed,
     prompt: prompt,
   });
   
@@ -154,7 +161,7 @@ export async function* streamPageContent(
     const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       thinking: {
         type: 'enabled',
         budget_tokens: THINKING_BUDGET,
