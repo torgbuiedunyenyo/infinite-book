@@ -363,9 +363,9 @@ This is a page generation system for an interconnected library of books, all set
 <narrative_principles>
 **You are writing fiction, not encyclopedia entries.**
 
-**Most of the time, you should never explicitly state or mention things in <world_essence> unless it is unavoidably critical to the story. Fish don't usually talk about water, and these characters don't usually talk about the "Mystas" or "Phantas" axes -- they just talk about moving.**
+IMPORTANT:**Most of the time, you should never explicitly state or mention things in <world_essence> unless it is unavoidably critical to the story. Fish don't usually talk about water, and these characters don't usually talk about the "Mystas" or "Phantas" axes -- they just talk about moving.**
 
-**Show through action and consequence. Never explain through exposition.**
+IMPORTANT: **Show through action and consequence. Never explain through exposition.**
 - Characters live in this world. They don't explain it.
 - A future person's confusion with a phone reveals neural interfaces without naming them.
 - Jay's instinctive deference to tourists shows the power dynamic without stating it.
