@@ -1,5 +1,8 @@
 -- The Infinite Book Database Schema
 -- PostgreSQL
+-- 
+-- This schema reflects the current state after all migrations.
+-- For fresh installs, run this file. For existing databases, run migrations.
 
 -- ==================== PAGES ====================
 -- Stores all generated pages in the library
@@ -12,6 +15,9 @@ CREATE TABLE pages (
     opening TEXT NOT NULL,
     closing TEXT NOT NULL,
     "references" JSONB DEFAULT '[]'::jsonb,
+    generation_prompt TEXT,                          -- Complete prompt sent to Claude
+    referrer_seed TEXT,                              -- Seed of page that linked here
+    referrer_page INTEGER,                           -- Page number that linked here
     discovered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
     CONSTRAINT unique_seed_page UNIQUE (seed, page_number)
@@ -19,6 +25,11 @@ CREATE TABLE pages (
 
 CREATE INDEX idx_pages_seed ON pages(seed);
 CREATE INDEX idx_pages_seed_page ON pages(seed, page_number);
+
+COMMENT ON TABLE pages IS 'All generated pages in the infinite library';
+COMMENT ON COLUMN pages.generation_prompt IS 'The complete user prompt sent to Claude when generating this page';
+COMMENT ON COLUMN pages.referrer_seed IS 'Seed of the page that contained the reference that led to this page';
+COMMENT ON COLUMN pages.referrer_page IS 'Page number of the referrer page';
 
 
 -- ==================== CANONICAL FACTS ====================
@@ -30,43 +41,77 @@ CREATE TABLE canonical_facts (
     category TEXT NOT NULL CHECK (category IN ('character', 'place', 'event', 'object', 'relationship')),
     name TEXT NOT NULL,
     fact TEXT NOT NULL,
-    source_seeds JSONB DEFAULT '[]'::jsonb,  -- Array of seeds that established/referenced this fact
+    source_seeds JSONB DEFAULT '[]'::jsonb,          -- Array of seeds that established/referenced this fact
+    priority INTEGER DEFAULT 1,                       -- 3=core narrative, 2=major world, 1=details
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    -- Each fact should be unique by category + name
     CONSTRAINT unique_category_name UNIQUE (category, name)
 );
 
 CREATE INDEX idx_canonical_facts_category ON canonical_facts(category);
 CREATE INDEX idx_canonical_facts_name ON canonical_facts(name);
-
--- Full-text search index for finding relevant facts
+CREATE INDEX idx_canonical_facts_priority ON canonical_facts(priority DESC);
 CREATE INDEX idx_canonical_facts_search ON canonical_facts USING gin(to_tsvector('english', name || ' ' || fact));
 
+COMMENT ON TABLE canonical_facts IS 'Established facts about the world, extracted from pages for cross-book consistency';
+COMMENT ON COLUMN canonical_facts.priority IS 'Fact importance: 3=core narrative, 2=major world, 1=details';
 
--- ==================== BOOK SYNOPSES ====================
--- Stores book-level metadata generated from page 1
--- Used to maintain narrative coherence across pages
 
-CREATE TABLE book_synopses (
+-- ==================== BOOK NARRATIVE ARCS ====================
+-- The story's DNA, created from page 1
+-- Guides all future page generation for a book
+
+CREATE TABLE book_narrative_arcs (
     id SERIAL PRIMARY KEY,
-    seed TEXT NOT NULL UNIQUE,
-    
-    -- Generated when page 1 is created
-    synopsis TEXT NOT NULL,           -- 2-3 sentence summary of what this book is
-    narrative_mode TEXT,              -- 'character', 'place', 'document', 'event', 'concept'
-    opening_situation TEXT,           -- The specific scene/moment page 1 establishes
-    
+    seed TEXT UNIQUE NOT NULL,
+    narrative_arc TEXT NOT NULL,                     -- 150-250 words: protagonist, tension, trajectory, themes
+    narrative_mode TEXT NOT NULL,                    -- 'character', 'place', 'document', 'event', 'concept'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_book_synopses_seed ON book_synopses(seed);
+CREATE INDEX idx_book_narrative_arcs_seed ON book_narrative_arcs(seed);
 
--- Comments for documentation
-COMMENT ON TABLE pages IS 'All generated pages in the infinite library';
-COMMENT ON TABLE canonical_facts IS 'Established facts about the world, extracted from pages for cross-book consistency';
-COMMENT ON TABLE book_synopses IS 'Book-level metadata for maintaining narrative coherence across pages';
-COMMENT ON COLUMN book_synopses.synopsis IS '2-3 sentence summary of what this book is about, generated from page 1';
-COMMENT ON COLUMN book_synopses.narrative_mode IS 'Type of narrative: character, place, document, event, or concept';
-COMMENT ON COLUMN book_synopses.opening_situation IS 'One sentence describing the specific scene/moment established on page 1';
+COMMENT ON TABLE book_narrative_arcs IS 'Rich narrative DNA for each book, guiding all future page generation';
+COMMENT ON COLUMN book_narrative_arcs.narrative_arc IS '150-250 word document: protagonist, central tension, trajectory, themes, world connections';
+COMMENT ON COLUMN book_narrative_arcs.narrative_mode IS 'Type of narrative: character, place, document, event, or concept';
+
+
+-- ==================== RUNNING SUMMARIES ====================
+-- Current story momentum, updated every 5 pages
+-- Tracks WHERE the story IS NOW, not its history
+
+CREATE TABLE running_summaries (
+    id SERIAL PRIMARY KEY,
+    seed TEXT UNIQUE NOT NULL,
+    momentum TEXT NOT NULL,                          -- 75-125 words: current tensions, character positions, direction
+    last_updated_page INTEGER NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_running_summaries_seed ON running_summaries(seed);
+
+COMMENT ON TABLE running_summaries IS 'Current story momentum - updated at pages 5, 10, 15, 20...';
+COMMENT ON COLUMN running_summaries.momentum IS '75-125 words about current state: active tensions, character positions, thematic direction';
+
+
+-- ==================== CHUNK SUMMARIES ====================
+-- Factual summaries of 5-page segments
+-- Provides complete coverage of story history
+
+CREATE TABLE chunk_summaries (
+    id SERIAL PRIMARY KEY,
+    seed TEXT NOT NULL,
+    chunk_start INTEGER NOT NULL,                    -- First page of chunk (1, 6, 11, 16...)
+    chunk_end INTEGER NOT NULL,                      -- Last page of chunk (5, 10, 15, 20...)
+    summary TEXT NOT NULL,                           -- 75-125 words: key events, character developments, plot progressions
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    CONSTRAINT unique_chunk UNIQUE (seed, chunk_start)
+);
+
+CREATE INDEX idx_chunk_summaries_seed ON chunk_summaries(seed);
+CREATE INDEX idx_chunk_summaries_seed_end ON chunk_summaries(seed, chunk_end);
+
+COMMENT ON TABLE chunk_summaries IS 'Factual summaries of 5-page story segments for complete coverage';
+COMMENT ON COLUMN chunk_summaries.summary IS '75-125 words: key events, character developments, plot progressions in this chunk';

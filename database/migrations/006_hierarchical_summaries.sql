@@ -1,13 +1,9 @@
 -- Migration: 006_hierarchical_summaries.sql
--- Replaces fragmented synopsis/event systems with hierarchical summaries
--- 
--- BREAKING CHANGE: This migration drops book_synopses and story_events tables
--- after creating new tables. Run with caution on production data.
+-- Adds hierarchical summary system for narrative coherence
 
--- ==================== NEW TABLES ====================
+-- ==================== TABLES ====================
 
 -- Book Narrative Arc: The story's DNA, created from page 1
--- Replaces: book_synopses (synopsis, opening_situation, narrative_mode)
 CREATE TABLE IF NOT EXISTS book_narrative_arcs (
     id SERIAL PRIMARY KEY,
     seed TEXT UNIQUE NOT NULL,
@@ -40,7 +36,6 @@ COMMENT ON COLUMN running_summaries.momentum IS '75-125 words about current stat
 
 
 -- Chunk Summaries: Factual summaries of 5-page segments
--- Replaces: story_events (which had broken selection algorithm)
 CREATE TABLE IF NOT EXISTS chunk_summaries (
     id SERIAL PRIMARY KEY,
     seed TEXT NOT NULL,
@@ -57,18 +52,4 @@ CREATE INDEX IF NOT EXISTS idx_chunk_summaries_seed_end ON chunk_summaries(seed,
 
 COMMENT ON TABLE chunk_summaries IS 'Factual summaries of 5-page story segments for complete coverage';
 COMMENT ON COLUMN chunk_summaries.summary IS '75-125 words: key events, character developments, plot progressions in this chunk';
-
-
--- ==================== DROP OLD TABLES ====================
--- These are replaced by the new hierarchical system
-
-DROP TABLE IF EXISTS book_synopses CASCADE;
-DROP TABLE IF EXISTS story_events CASCADE;
-
-
--- ==================== VERIFICATION ====================
--- Uncomment to verify migration:
--- SELECT 'book_narrative_arcs' as table_name, count(*) FROM book_narrative_arcs
--- UNION ALL SELECT 'running_summaries', count(*) FROM running_summaries  
--- UNION ALL SELECT 'chunk_summaries', count(*) FROM chunk_summaries;
 
