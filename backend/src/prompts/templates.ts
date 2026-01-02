@@ -564,7 +564,7 @@ export function buildPrompt(context: GenerationContext): string {
   prompt += `<output_requirements>\n`;
   prompt += `- 200-300 words of prose\n`;
   prompt += `- End mid-beat—the page should pull forward, not conclude\n`;
-  prompt += `- Include [[references]] when appropriate\n`;
+  prompt += `- Include 1-2 [[references]] when appropriate\n`;
   prompt += `- Content only, no meta-commentary or headers. Follow <narrative_principles>\n`;
   prompt += `</output_requirements>`;
 
