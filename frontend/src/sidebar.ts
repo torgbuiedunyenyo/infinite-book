@@ -52,10 +52,8 @@ export async function openSidebar(): Promise<void> {
     searchInput?.focus();
   }, 300);
   
-  // Fetch books if we haven't already
-  if (books.length === 0) {
-    await fetchBooks();
-  }
+  // Fetch books (refresh each time sidebar is opened)
+  await fetchBooks();
 }
 
 /**
