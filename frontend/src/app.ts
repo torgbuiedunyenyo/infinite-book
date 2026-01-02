@@ -48,6 +48,9 @@ let currentPageContent: string | null = null;
 // Track current page's references for pre-generation
 let currentPageReferences: Reference[] = [];
 
+// Track current reading position for continuous pre-generation chaining
+let currentReadingPosition: { seed: string; page: number } | null = null;
+
 // Track whether first navigation has completed (for tour)
 let firstNavigationComplete = false;
 
@@ -524,6 +527,12 @@ async function processPreGenerationQueue(): Promise<void> {
 /**
  * Actually execute a pre-generation request.
  * This is the internal function that does the work.
+ * 
+ * After successful generation, chains to the next page if:
+ * - This is for the current book (same seed as reading position)
+ * - The next page is within PREGENERATE_PAGES_AHEAD of reading position
+ * 
+ * This ensures continuous pre-generation up to 3 pages ahead.
  */
 async function executePreGeneration(
   seed: string,
@@ -569,6 +578,32 @@ async function executePreGeneration(
         duration: `${duration.toFixed(2)}ms`,
         cacheSize: prefetchCache.size,
       });
+      
+      // Chain to next page if within range of current reading position
+      // This ensures continuous generation up to PREGENERATE_PAGES_AHEAD
+      if (currentReadingPosition && seed === currentReadingPosition.seed) {
+        const nextPage = page + 1;
+        const maxPage = currentReadingPosition.page + PREGENERATE_PAGES_AHEAD;
+        
+        if (nextPage <= maxPage) {
+          const nextKey = locationKey(seed, nextPage);
+          const nextCached = prefetchCache.has(nextKey);
+          const nextInProgress = preGenerationInProgress.has(nextKey);
+          const nextQueued = preGenerationQueue.some(q => q.seed === seed && q.page === nextPage);
+          
+          if (!nextCached && !nextInProgress && !nextQueued) {
+            cacheLogger.info('Chaining to next page after successful generation', {
+              seed,
+              completedPage: page,
+              nextPage,
+              readingPosition: currentReadingPosition.page,
+              maxPage,
+            });
+            // Queue next page with high priority (upcoming pages in current book)
+            queuePreGeneration(seed, nextPage, undefined, 'high');
+          }
+        }
+      }
       
       return data;
     } else {
@@ -889,6 +924,9 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
     totalNavigations,
     cacheHitRate: totalNavigations > 1 ? `${((cacheHits / (totalNavigations - 1)) * 100).toFixed(1)}%` : 'N/A',
   });
+  
+  // Track reading position for continuous pre-generation chaining
+  currentReadingPosition = { seed, page };
   
   setCurrentLocation({ seed, page });
   setCurrentSeed(seed);
