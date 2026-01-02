@@ -518,7 +518,7 @@ export function buildPrompt(context: GenerationContext): string {
   if (prevPages.length > 0) {
     const immediatePrev = prevPages[prevPages.length - 1];
     prompt += `Generate page ${pageNumber}, continuing from where page ${immediatePrev.pageNumber} ended.\n`;
-    prompt += `Maintain voice and perspective. Advance the story—continuation means progression, not repetition.\n`;
+    prompt += `Maintain voice and perspective. Advance the story—continuation means progression, not repetition. Follow <narrative_principles>\n`;
   } else if (pageNumber === 1 && referrerContext) {
     prompt += `The reader arrived by clicking [[${seed}]] in another book.\n`;
     prompt += `This is PAGE 1 of a new book. The referrer provides context for what "${seed}" means in this world.\n`;
