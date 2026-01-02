@@ -297,7 +297,7 @@ Focus on WHERE THE STORY IS NOW, not its history:
 - Character positions: Where do characters stand relative to each other?
 - Active world mechanics: Which elements of this world are currently in play? (temporal navigation, underground networks, company operations, future/past dynamics, the edges, etc.)
 - Dominant narrative mode: What mode have recent pages been in? (action/pursuit, dialogue/conversation, introspection/reflection, investigation/discovery, etc.)
-- Pacing note: If the same narrative mode has dominated for multiple chunks, note this and suggest whether the story should continue in this mode, shift to a different mode, or move toward resolution.
+- Arc position: What part of the narrative arc is the story in? If a part has continued for many pages, the next pages should begin transitioning toward the next part.
 
 Write 75-125 words about CURRENT STATE and DIRECTION, not a recap of events.
 </task>

@@ -399,15 +399,9 @@ This library is one coherent world—never contradict established facts.
 </narrative_principles>
 
 <references>
-References ([[double brackets]]) must point to things that exist within this world. Don't take these verbatim -- these are just a few examples:
+References ([[double brackets]]) point to other books in this world. Each reference becomes a new book's seed.
 
-**Characters:** [[Jay]]
-**Places:** [[the shop]], [[the edges]]
-**Concepts:** [[clef]], [[the underground]]
-**Events:** [[the day she disappeared]]
-**Documents:** [[company internal memo]], [[cartographer's notes]]
-
-References should feel natural within the prose—things characters would actually mention, documents that would actually exist, places they'd actually go. Again, the above are just examples.
+Reference what emerges from the prose: a person mentioned, a place visited, an object examined, an event recalled, a document cited. Make references specific and evocative—they are how readers discover new corners of this world.
 </references>
 
 <task>
@@ -564,7 +558,7 @@ export function buildPrompt(context: GenerationContext): string {
   prompt += `<output_requirements>\n`;
   prompt += `- 200-300 words of prose\n`;
   prompt += `- End mid-beat—the page should pull forward, not conclude\n`;
-  prompt += `- Include 1-2 [[references]] when appropriate as described in <references>\n`;
+  prompt += `- 1-2 [[references]] emerging naturally from the prose\n`;
   prompt += `- Content only, no meta-commentary or headers. Follow <narrative_principles>\n`;
   prompt += `</output_requirements>`;
 
