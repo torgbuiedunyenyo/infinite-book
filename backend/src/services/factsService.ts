@@ -10,7 +10,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CanonicalFact, Page } from '../types';
 import { saveCanonicalFact, getFactsByPriority, getFactsFromSeed, searchFacts } from './database';
-import { EXTRACTION_SYSTEM } from '../prompts/templates';
+import { EXTRACTION_SYSTEM, CORE_NARRATIVE_SEED } from '../prompts/templates';
 import { factsLogger } from './logger';
 
 const log = factsLogger;
@@ -192,12 +192,17 @@ Return ONLY the JSON array, no other text.
  * 1. Core narrative facts (priority 3) - ALWAYS included
  * 2. Same-book facts - for narrative consistency
  * 3. Cross-book facts via FTS - for world consistency
+ *
+ * For core narrative generation: filters out facts that ONLY come from inset narratives
+ * to prevent subplot drift from inset world-building.
  */
 export async function getRelevantFactsForGeneration(seed: string): Promise<CanonicalFact[]> {
   log.info('Getting relevant facts for generation', { seed });
 
+  const isCoreSeed = seed === CORE_NARRATIVE_SEED;
+
   // 1. Always include high-priority facts (core narrative)
-  const coreFacts = await getFactsByPriority(3, 4);
+  let coreFacts = await getFactsByPriority(3, 4);
   log.debug('Core facts retrieved', { count: coreFacts.length });
 
   // 2. Get same-book facts
@@ -206,8 +211,26 @@ export async function getRelevantFactsForGeneration(seed: string): Promise<Canon
 
   // 3. Get relevant cross-book facts via FTS (remaining slots)
   const remainingSlots = Math.max(0, 12 - coreFacts.length - sameBookFacts.length);
-  const relatedFacts = remainingSlots > 0 ? await searchFacts(seed, remainingSlots) : [];
+  let relatedFacts = remainingSlots > 0 ? await searchFacts(seed, remainingSlots) : [];
   log.debug('Related facts retrieved', { count: relatedFacts.length });
+
+  // For core narrative: filter out facts that ONLY come from inset narratives
+  // These can create subplot drift by injecting inset world-building into the main story
+  if (isCoreSeed) {
+    const beforeFilter = coreFacts.length + relatedFacts.length;
+
+    coreFacts = coreFacts.filter(f =>
+      f.sourceSeeds.includes(CORE_NARRATIVE_SEED)
+    );
+    relatedFacts = relatedFacts.filter(f =>
+      f.sourceSeeds.includes(CORE_NARRATIVE_SEED)
+    );
+
+    log.info('Filtered inset-only facts for core narrative', {
+      beforeFilter,
+      afterFilter: coreFacts.length + relatedFacts.length,
+    });
+  }
 
   // Combine and dedupe
   const allFacts = [...coreFacts, ...sameBookFacts, ...relatedFacts];

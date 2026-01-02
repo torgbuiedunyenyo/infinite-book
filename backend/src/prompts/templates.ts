@@ -6,13 +6,13 @@ export const CORE_NARRATIVE_SEED = "The Shape of Time";
 
 export const CORE_NARRATIVE_ARC: BookArc = {
   seed: "The Shape of Time",
-  narrativeArc: `### Part One: Meeting and Courtship (2025)
+  narrativeArc: `### Part One: Meeting and Courtship (2025) [Target: pages 1-15]
 
 Jay and Tan meet in his shop. She's confused by the phone; he gives her the clef for free. She keeps coming back. They become friends, then more. The relationship develops against the backdrop of Oakland's future-saturated economy—the tourists, the clef sales, the constant awareness of the wealth gap between eras.
 
 Jay falls in love with Tan. Tan falls in love with Jay, or something like it. Both are aware of how their relationship looks from the outside. Both proceed anyway.
 
-### Part Two: Arrival in the Future
+### Part Two: Arrival in the Future [Target: pages 16-30]
 
 Tan wants Jay to see her world. Her father arranges documentation. They travel to the future together.
 
@@ -22,7 +22,7 @@ The social dynamics are worse. Everyone assumes he's with Tan for citizenship, m
 
 Jay tries to adapt. He studies temporal mechanics, looks for work that doesn't require skills he doesn't have. Progress is slow and humiliating.
 
-### Part Three: The Disappearance
+### Part Three: The Disappearance [Target: pages 31-40]
 
 A few days after their arrival, Tan disappears.
 
@@ -34,7 +34,7 @@ Jay reports her missing. Within hours, he's the primary suspect. The investigati
 
 He runs.
 
-### Part Four: The Flight and Investigation
+### Part Four: The Flight and Investigation [Target: pages 41-60]
 
 Jay flees into the temporal margins—times and routes that aren't heavily monitored, places where past people disappear into the cracks of the system. He makes contact with the underground networks that help temporal immigrants: forgers, fixers, people who know hidden paths through time.
 
@@ -49,7 +49,7 @@ His investigation takes him through multiple eras:
 
 Along the way, he learns to navigate through study and practice. He becomes something he never expected: a competent time traveler, self-taught under pressure.
 
-### Part Five: The Truth
+### Part Five: The Truth [Target: pages 61-75]
 
 Jay eventually discovers what happened to Tan.
 
@@ -59,7 +59,7 @@ She didn't consider what her disappearance would mean for Jay. It didn't occur t
 
 Jay finds her returning from the edges, or at a station near them. She's fine. She's had an incredible experience. She's excited to tell him about it.
 
-### Part Six: Resolution
+### Part Six: Resolution [Target: pages 76-90]
 
 Jay has to decide what to do with this.
 
@@ -250,11 +250,7 @@ The following is THE central story of this library. All books exist within Jay's
 
 **Jay** works at a shop in 2025 Oakland. He's lived his whole life in an era shaped by future influence—he's used to tourists, to products that don't quite belong, to navigating a world not entirely his own. He's observant. He notices what doesn't add up.
 
-**Tan** is from the future, daughter of an executive at the leading PRMTT company. Wealthy, well-traveled, comfortable moving through eras. She visits the past and meets Jay when she can't figure out how to pay with his phone—she's used to neural interfaces. He gives her the clef for free. They become friends, then fall in love.
-
-Jay and Tan meet in his shop. She's confused by the phone; he gives her the clef for free. She keeps coming back. They become friends, then more. The relationship develops against the backdrop of Oakland's future-saturated economy—the tourists, the clef sales, the constant awareness of the wealth gap between eras.
-
-Jay falls in love with Tan. Tan falls in love with Jay, or something like it. Both are aware of how their relationship looks from the outside. Both proceed anyway.
+**Tan** is from the future, daughter of an executive at the leading PRMTT company. Wealthy, well-traveled, comfortable moving through eras. She meets Jay when she can't figure out how to pay with his phone—she's used to neural interfaces. He gives her the clef for free. She keeps coming back. They become friends, then more. Both are aware of how their relationship looks from the outside. Both proceed anyway.
 
 Tan brings Jay to the future; her father arranges documentation. Jay finds the future disorienting—he doesn't know the technology, the layout, the social cues. He depends on Tan to navigate. People assume things about why he's there. Tan's friends are polite but condescending. Her family is cold.
 
@@ -402,11 +398,7 @@ This library is one coherent world—never contradict established facts.
 References ([[double brackets]]) point to other books in this world. Each reference becomes a new book's seed.
 
 Reference what emerges from the prose: a person mentioned, a place visited, an object examined, an event recalled, a document cited. Make references specific and evocative—they are how readers discover new corners of this world.
-</references>
-
-<task>
-Generate page content for this system. Write fiction that lives inside this world.
-</task>`;
+</references>`;
 
 /**
  * SYSTEM_PROMPT: Full system prompt for inset narratives (includes core narrative summary).
@@ -510,7 +502,7 @@ export function buildPrompt(context: GenerationContext): string {
   // Cross-book world consistency
   if (canonicalFacts && canonicalFacts.length > 0) {
     prompt += `<established_facts>\n`;
-    prompt += `These details have been established in other books. Don't contradict them:\n\n`;
+    prompt += `Background details from other books (for consistency only—don't build story around them, just avoid contradictions):\n\n`;
     for (const fact of canonicalFacts) {
       prompt += `- ${fact.name}: ${fact.fact}\n`;
     }
@@ -549,7 +541,7 @@ export function buildPrompt(context: GenerationContext): string {
 
   // Remind about narrative arc for coherence (pages > 1, or core narrative page 1)
   if (effectiveArc && (pageNumber > 1 || isCoreSeed)) {
-    prompt += `\nRemember: This is a ${effectiveArc.narrativeMode} narrative. Stay true to the narrative arc. Don't drift from the book's established identity.\n`;
+    prompt += `\nThe narrative arc is authoritative—follow its structure over any subplot that has emerged. If the story has lingered in one arc phase past its target pages, advance to the next.\n`;
   }
 
   prompt += `</instructions>\n\n`;
@@ -557,9 +549,8 @@ export function buildPrompt(context: GenerationContext): string {
   // ==================== OUTPUT REQUIREMENTS ====================
   prompt += `<output_requirements>\n`;
   prompt += `- 200-300 words of prose\n`;
-  prompt += `- End mid-beat—the page should pull forward, not conclude\n`;
   prompt += `- 1-2 [[references]] emerging naturally from the prose\n`;
-  prompt += `- Content only, no meta-commentary or headers. Follow <narrative_principles>\n`;
+  prompt += `- Content only, no meta-commentary or headers\n`;
   prompt += `</output_requirements>`;
 
   return prompt;

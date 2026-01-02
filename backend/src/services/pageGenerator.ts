@@ -771,6 +771,9 @@ async function doGeneratePage(
     closing,
     references,
     generationPrompt: prompt,
+    // Only store referrer for page 1 (how this book was discovered)
+    referrerSeed: pageNumber === 1 && referrerContext ? referrerContext.seed : undefined,
+    referrerPage: pageNumber === 1 && referrerContext ? referrerContext.pageNumber : undefined,
   };
   
   log.debug(`Request #${genId}: Page object constructed`, {
@@ -781,6 +784,8 @@ async function doGeneratePage(
     closingLength: newPage.closing.length,
     referencesCount: newPage.references.length,
     generationPromptLength: newPage.generationPrompt?.length,
+    referrerSeed: newPage.referrerSeed,
+    referrerPage: newPage.referrerPage,
   });
 
   // Save to database
@@ -1044,6 +1049,9 @@ export async function* streamOrGetPage(
       closing,
       references,
       generationPrompt: prompt,
+      // Only store referrer for page 1 (how this book was discovered)
+      referrerSeed: pageNumber === 1 && referrerContext ? referrerContext.seed : undefined,
+      referrerPage: pageNumber === 1 && referrerContext ? referrerContext.pageNumber : undefined,
     };
     
     log.debug(`Stream #${genId}: Page object constructed from stream`, {
@@ -1052,6 +1060,8 @@ export async function* streamOrGetPage(
       closingLength: newPage.closing.length,
       referencesCount: newPage.references.length,
       generationPromptLength: newPage.generationPrompt?.length,
+      referrerSeed: newPage.referrerSeed,
+      referrerPage: newPage.referrerPage,
     });
 
     // Save to database

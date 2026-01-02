@@ -196,6 +196,7 @@ This summary will be used to prevent repetition and maintain continuity when gen
 - Plot progressions and complications
 - Elements introduced that matter going forward
 - Specific details that shouldn't be contradicted or repeated
+- Arc deviation: Note if story events diverge from the narrative arc above
 
 Be factual and concrete. Write 75-125 words.
 
@@ -297,7 +298,7 @@ Focus on WHERE THE STORY IS NOW, not its history:
 - Character positions: Where do characters stand relative to each other?
 - Active world mechanics: Which elements of this world are currently in play? (temporal navigation, underground networks, company operations, future/past dynamics, the edges, etc.)
 - Dominant narrative mode: What mode have recent pages been in? (action/pursuit, dialogue/conversation, introspection/reflection, investigation/discovery, etc.)
-- Arc position: What part of the narrative arc is the story in? If a part has continued for many pages, the next pages should begin transitioning toward the next part.
+- Arc direction: Identify which part of the narrative arc the story should be in based on page count. If current part has exceeded its target pages, state that the story MUST transition to the next arc phase.
 
 Write 75-125 words about CURRENT STATE and DIRECTION, not a recap of events.
 </task>

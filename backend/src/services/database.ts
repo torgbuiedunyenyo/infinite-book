@@ -228,8 +228,8 @@ export async function savePage(page: Page): Promise<Page> {
   // try to save the same page simultaneously (e.g., prefetch vs streaming)
   const result = await executeQuery<{ id: number; discovered_at: Date }>(
     'savePage',
-    `INSERT INTO pages (seed, page_number, content, opening, closing, "references", generation_prompt)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO pages (seed, page_number, content, opening, closing, "references", generation_prompt, referrer_seed, referrer_page)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      ON CONFLICT (seed, page_number) DO UPDATE SET seed = EXCLUDED.seed
      RETURNING id, discovered_at`,
     [
@@ -240,6 +240,8 @@ export async function savePage(page: Page): Promise<Page> {
       page.closing,
       JSON.stringify(page.references),
       page.generationPrompt || null,
+      page.referrerSeed || null,
+      page.referrerPage || null,
     ]
   );
 

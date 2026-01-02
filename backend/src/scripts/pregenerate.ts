@@ -75,11 +75,15 @@ async function getBookStats(): Promise<{ seed: string; pageCount: number }[]> {
 
 // ==================== API CALLS ====================
 
+// Timeout for fetch requests (LLM generation can take 2+ minutes)
+const FETCH_TIMEOUT_MS = 180000; // 3 minutes
+
 async function generatePage(
   seed: string, 
   pageNumber: number, 
   referrerSeed?: string, 
-  referrerPage?: number
+  referrerPage?: number,
+  retryCount: number = 0
 ): Promise<{ success: boolean; isNewDiscovery: boolean; error?: string }> {
   let url = `${API_BASE_URL}/api/page?seed=${encodeURIComponent(seed)}&page=${pageNumber}`;
   
@@ -89,7 +93,11 @@ async function generatePage(
   }
   
   try {
-    const response = await fetch(url);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       const errorBody = await response.text();
@@ -99,10 +107,19 @@ async function generatePage(
     const data = await response.json() as { isNewDiscovery: boolean };
     return { success: true, isNewDiscovery: data.isNewDiscovery };
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    
+    // Retry on timeout or network errors (up to 2 retries)
+    if (retryCount < 2 && (errorMsg.includes('abort') || errorMsg.includes('ECONNREFUSED'))) {
+      console.log(`    Retrying (attempt ${retryCount + 2}/3)...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return generatePage(seed, pageNumber, referrerSeed, referrerPage, retryCount + 1);
+    }
+    
     return { 
       success: false, 
       isNewDiscovery: false, 
-      error: error instanceof Error ? error.message : String(error) 
+      error: errorMsg
     };
   }
 }
