@@ -4,6 +4,7 @@ import { getPage, getPoolStats, getAllBooks, getHighestPageNumber } from '../ser
 import { getLLMStats } from '../services/llm';
 import { routesLogger } from '../services/logger';
 import { SequentialAccessError, InvalidSeedAccessError } from '../types';
+import { CANONICAL_SEEDS } from '../prompts/templates';
 
 const log = routesLogger;
 
@@ -74,24 +75,7 @@ function isCanonicalSeed(seed: string): boolean {
 
 const router = Router();
 
-// Canonical seeds: Entry points into The Shape of Time
-const CANONICAL_SEEDS = [
-
-  "Out of Time",
-  "On Time",
-  "Ahead of Time",
-  "For The Time Being",
-  "From Time to Time",
-  "In No Time",
-  "Saving Time",
-  "Time Wasted",
-  "Time After Time",
-  "About Time",
-  "Killing Time",
-  "Time Flies",
-  "Time Will Tell",
-  "Buying Time",
-];
+// CANONICAL_SEEDS is now imported from templates.ts
 
 // Request logging middleware for API routes
 router.use((req: Request, res: Response, next) => {

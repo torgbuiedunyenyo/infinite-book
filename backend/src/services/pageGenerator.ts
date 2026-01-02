@@ -3,6 +3,7 @@ import { getPage, getPreviousPages, savePage, getBookArc, getChunkSummaries, sav
 import { generatePageContent, streamPageContent } from './llm';
 import { getRelevantFactsForGeneration, scheduleFactExtraction } from './factsService';
 import { getContextForGeneration, scheduleArcGeneration, scheduleChunkAndMomentum, generateBookArc } from './summaryService';
+import { buildPrompt, CORE_NARRATIVE_SEED } from '../prompts/templates';
 import { generatorLogger } from './logger';
 
 // ==================== CONTEXT WAITING ====================
@@ -406,6 +407,9 @@ export interface ReferrerContext {
   pageNumber: number;
   content: string;
   references: Reference[];  // The references from the referrer page
+  // Enhanced fields for inset narrative context
+  isCoreSeed?: boolean;
+  parentBookArc?: string;
 }
 
 /**
@@ -635,10 +639,18 @@ async function doGeneratePage(
     includesReferrerContext: !!context.referrerContext,
   });
 
+  // Build the prompt from context
+  log.debug(`Request #${genId}: Building prompt from context`);
+  const prompt = buildPrompt(context);
+  
+  log.info(`Request #${genId}: Prompt built`, {
+    promptLength: prompt.length,
+  });
+
   // Generate content via LLM
   log.info(`Request #${genId}: Calling LLM for content generation`);
   const startTime = performance.now();
-  const content = await generatePageContent(context);
+  const content = await generatePageContent(prompt);
   const generationTime = performance.now() - startTime;
   
   log.info(`Request #${genId}: LLM generation complete`, {
@@ -661,6 +673,7 @@ async function doGeneratePage(
     opening,
     closing,
     references,
+    generationPrompt: prompt,
   };
   
   log.debug(`Request #${genId}: Page object constructed`, {
@@ -670,6 +683,7 @@ async function doGeneratePage(
     openingLength: newPage.opening.length,
     closingLength: newPage.closing.length,
     referencesCount: newPage.references.length,
+    generationPromptLength: newPage.generationPrompt?.length,
   });
 
   // Save to database
@@ -850,13 +864,21 @@ export async function* streamOrGetPage(
       },
     });
 
+    // Build the prompt from context
+    log.debug(`Stream #${genId}: Building prompt from context`);
+    const prompt = buildPrompt(context);
+    
+    log.info(`Stream #${genId}: Prompt built`, {
+      promptLength: prompt.length,
+    });
+
     // Stream content from LLM
     log.info(`Stream #${genId}: Starting LLM stream`);
     const startTime = performance.now();
     let fullContent = '';
     let chunkCount = 0;
     
-    for await (const chunk of streamPageContent(context)) {
+    for await (const chunk of streamPageContent(prompt)) {
       fullContent += chunk;
       chunkCount++;
       
@@ -895,6 +917,7 @@ export async function* streamOrGetPage(
       opening,
       closing,
       references,
+      generationPrompt: prompt,
     };
     
     log.debug(`Stream #${genId}: Page object constructed from stream`, {
@@ -902,6 +925,7 @@ export async function* streamOrGetPage(
       openingLength: newPage.opening.length,
       closingLength: newPage.closing.length,
       referencesCount: newPage.references.length,
+      generationPromptLength: newPage.generationPrompt?.length,
     });
 
     // Save to database

@@ -1,5 +1,97 @@
 import { GenerationContext, CanonicalFact, BookArc, ChunkSummary, RunningSummary } from '../types';
 
+// ==================== CORE NARRATIVE ====================
+
+export const CORE_NARRATIVE_SEED = "The Shape of Time";
+
+export const CORE_NARRATIVE_ARC: BookArc = {
+  seed: "The Shape of Time",
+  narrativeArc: `### Part One: Meeting and Courtship (2025)
+
+Jay and Tan meet in his shop. She's confused by the phone; he gives her the clef for free. She keeps coming back. They become friends, then more. The relationship develops against the backdrop of Oakland's future-saturated economy—the tourists, the clef sales, the constant awareness of the wealth gap between eras.
+
+Jay falls in love with Tan. Tan falls in love with Jay, or something like it. Both are aware of how their relationship looks from the outside. Both proceed anyway.
+
+### Part Two: Arrival in the Future
+
+Tan wants Jay to see her world. Her father arranges documentation. They travel to the future together.
+
+Jay's experience of the future is disorienting. The technology is unfamiliar, the social cues are different, the layout of cities follows patterns he doesn't understand. He depends on Tan to navigate.
+
+The social dynamics are worse. Everyone assumes he's with Tan for citizenship, money, status. He's treated as a curiosity at best, a predator at worst. Tan's friends are polite but condescending. Her family is cold.
+
+Jay tries to adapt. He studies temporal mechanics, looks for work that doesn't require skills he doesn't have. Progress is slow and humiliating.
+
+### Part Three: The Disappearance
+
+A few days after their arrival, Tan disappears.
+
+She had been acting strangely in the days before—distracted, excited, secretive. She'd mentioned something about the edges, about wanting to see for herself what was out there. Jay didn't fully understand what she meant.
+
+The night she disappears, she tells Jay she needs to check on something. She'll be back soon. She doesn't say where she's going. She doesn't come back.
+
+Jay reports her missing. Within hours, he's the primary suspect. The investigation focuses entirely on him. His past-person status, his economic motive, his lack of alibi—everything points to him. He's detained, questioned, released under surveillance, then learns that charges are imminent.
+
+He runs.
+
+### Part Four: The Flight and Investigation
+
+Jay flees into the temporal margins—times and routes that aren't heavily monitored, places where past people disappear into the cracks of the system. He makes contact with the underground networks that help temporal immigrants: forgers, fixers, people who know hidden paths through time.
+
+He's not just running; he's investigating. He retraces Tan's final days. He learns about her father's company, about the research stations at the edges, about the expeditions that never returned. He discovers that Tan had been curious about the same things—not out of moral outrage, but out of adventurous interest.
+
+His investigation takes him through multiple eras:
+
+- Back to 2025 Oakland, which has changed in his absence—his shop is different, people don't quite remember him right, the time has continued evolving without him
+- To other past eras where the company has operations
+- To future times he can access through underground channels
+- Eventually, toward the Mystas edges where rumors suggest Tan may have gone
+
+Along the way, he learns to navigate through study and practice. He becomes something he never expected: a competent time traveler, self-taught under pressure.
+
+### Part Five: The Truth
+
+Jay eventually discovers what happened to Tan.
+
+She went to the Mystas edges. Not because she was silenced or kidnapped or caught up in conspiracy—but because she wanted to. She'd learned about the unmapped regions, found them fascinating, and decided to go see for herself. It was an adventure. She had the resources, the training, the equipment. She didn't think to tell anyone because she planned to explain it all when she got back, "in her own time."
+
+She didn't consider what her disappearance would mean for Jay. It didn't occur to her that he would be blamed, hunted, forced to flee through time to clear his name. She wasn't being cruel—she simply didn't think about it. He wasn't real to her in the way she was real to herself.
+
+Jay finds her returning from the edges, or at a station near them. She's fine. She's had an incredible experience. She's excited to tell him about it.
+
+### Part Six: Resolution
+
+Jay has to decide what to do with this.
+
+He's spent weeks or months running, hiding, learning to survive across times. He's been terrified, exhausted, transformed. He's developed skills he never knew he could have. He's seen things about how the world works—about the company's operations, about the future's exploitation of the past—that he can never unsee.
+
+And Tan didn't think about him at all.
+
+He decides to forgive her. Not because what she did was acceptable, but because holding onto anger would cost him more than letting it go. He understands, now, that the gap between them was always larger than he wanted to believe. She cared about him, in her way. But he was never as real to her as she was to him.
+
+They try, briefly, to continue. But Tan doesn't want to do the work. The relationship requires her to see Jay fully, to account for the power between them, to change how she moves through the world. She's not willing. It's easier to let him go.
+
+Jay returns to Oakland, to 2025, to his shop. The time has changed in his absence—it's not quite the place he left—but it's still recognizable. He's different now. He understands things about the structure of the world that most people in his era don't know.
+
+He goes back to work. He sells clef to future tourists. He watches them come and go, knowing what he knows, carrying what he's learned. The edges remain unmapped. The exploitation continues. Nothing has been fixed.`,
+  narrativeMode: "character",
+};
+
+export const CANONICAL_SEEDS = [CORE_NARRATIVE_SEED];
+
+export const INSET_NARRATIVE_GUIDANCE = `<inset_narrative>
+You are generating an inset narrative—a book reached by clicking a [[reference]] in another book. This is a deeper exploration of one element from the world.
+
+Inset narratives:
+- Focus on the referenced subject (person, place, concept, event)
+- Exist in the same world and obey the same rules
+- May or may not feature Jay, Tan, or other known characters
+- Must never contradict established facts from any other book
+- Add depth to the world; they are not disconnected vignettes
+
+The subject determines the focus. The world remains consistent.
+</inset_narrative>`;
+
 // ==================== MODULAR PROMPT COMPONENTS ====================
 
 /**
@@ -146,9 +238,9 @@ In 2025 Oakland, shops sell clef, a mildly relaxing drink popular with future to
 
 At the far edges of the Mystas axis lies unmapped territory. The currents there are fast, turbulent, constantly shifting—not more dangerous in principle, but practically treacherous without reliable maps. Travelers risk becoming lost, carried by currents they can't predict toward regions no one has charted. The PRMTT companies maintain research stations nearby, slowly extending their maps. The company that charts the edges first will control access to whatever lies beyond.
 
-## One Central Narrative (for context, not prescription)
+## The Core Narrative
 
-The following describes a well-known story that threads through many books in this library. Not every book features these characters—but they exist in the same world, and their story illustrates how this world feels to live in.
+The following is THE central story of this library. All books exist within Jay's world. The core narrative follows Jay directly. Inset narratives (books reached via [[references]]) explore other corners of this world—they don't need to feature Jay, but they exist in the same world and must never contradict established facts.
 
 **Jay** works at a shop in 2025 Oakland. He's lived his whole life in an era shaped by future influence—he's used to tourists, to products that don't quite belong, to navigating a world not entirely his own. He's observant. He notices what doesn't add up.
 
@@ -242,14 +334,6 @@ When these characters appear, these facts are established:
 
 Most books will not feature Jay and Tan directly. They are examples of how this world works, not the only story.
 
-## Common Extraction Errors to Avoid
-
-- Misreading cross-era power dynamics as family relationships
-- Assuming deference means parent/child rather than economic dependence
-- Missing that "taking care of someone" can mean sponsorship, not parenting
-- Confusing future technology references with magic or supernatural elements
-- Reading temporal navigation as mystical rather than practical/technological
-- Assuming unnamed characters from different eras meeting are related
 </narrative_context>`;
 
 /**
@@ -281,8 +365,6 @@ This is a page generation system for an interconnected library of books, all set
 
 **Most of the time, you should never explicitly state or mention things in <world_essence> unless it is unavoidably critical to the story. Fish don't usually talk about water, and these characters don't usually talk about the "Mystas" or "Phantas" axes -- they just talk about moving.**
 
-Every page is mid-story. There are no true beginnings and no true endings—only middles. Even page 1 of a book should feel like joining something already in motion.
-
 **Show through action and consequence. Never explain through exposition.**
 - Characters live in this world. They don't explain it.
 - A future person's confusion with a phone reveals neural interfaces without naming them.
@@ -309,6 +391,8 @@ Every page is mid-story. There are no true beginnings and no true endings—only
 - If the seed names a concept or document → explore through that lens
 
 The world is larger than any one story. Jay and Tan's narrative is a thread, not the fabric.
+
+This library is one coherent world—never contradict established facts.
 </narrative_principles>
 
 <anti_patterns>
@@ -325,12 +409,12 @@ The world is larger than any one story. Jay and Tan's narrative is a thread, not
 </anti_patterns>
 
 <references>
-References ([[double brackets]]) must point to things that exist within this world. These are just a few examples:
+References ([[double brackets]]) must point to things that exist within this world. Don't take these verbatim -- these are just a few examples:
 
 **Characters:** [[Jay]]
 **Places:** [[the shop]], [[the edges]]
 **Concepts:** [[clef]], [[the underground]]
-**Events:** [[the day she disappeared]], [[what happened at the edges]]
+**Events:** [[the day she disappeared]]
 **Documents:** [[company internal memo]], [[cartographer's notes]]
 
 References should feel natural within the prose—things characters would actually mention, documents that would actually exist, places they'd actually go. Again, the above are just examples.
@@ -381,7 +465,7 @@ export function buildPrompt(context: GenerationContext): string {
   // Complete coverage of story in 5-page chunks - no gaps!
   if (chunkSummaries && chunkSummaries.length > 0) {
     prompt += `<story_history>\n`;
-    prompt += `What has happened in this book (do not repeat these events):\n\n`;
+    prompt += `What has already happened in this book (do not repeat these events):\n\n`;
     for (const chunk of chunkSummaries) {
       prompt += `<chunk pages="${chunk.chunkStart}-${chunk.chunkEnd}">\n`;
       prompt += `${chunk.summary}\n`;
@@ -406,13 +490,16 @@ export function buildPrompt(context: GenerationContext): string {
     prompt += `<referrer_seed>${referrerContext.seed}</referrer_seed>\n`;
     prompt += `<referrer_page number="${referrerContext.pageNumber}">\n${referrerContext.content}\n</referrer_page>\n`;
     prompt += `</referrer_context>\n\n`;
+    
+    // Add inset narrative guidance for page 1 of inset narratives
+    prompt += `${INSET_NARRATIVE_GUIDANCE}\n\n`;
   }
 
   // ==================== CANONICAL FACTS ====================
   // Cross-book world consistency
   if (canonicalFacts && canonicalFacts.length > 0) {
     prompt += `<established_facts>\n`;
-    prompt += `These details have been established in other books. Maintain consistency:\n\n`;
+    prompt += `These details have been established in other books. Don't contradict them:\n\n`;
     for (const fact of canonicalFacts) {
       prompt += `- ${fact.name}: ${fact.fact}\n`;
     }
@@ -430,8 +517,8 @@ export function buildPrompt(context: GenerationContext): string {
   
   if (prevPages.length > 0) {
     const immediatePrev = prevPages[prevPages.length - 1];
-    prompt += `Generate page ${pageNumber}, continuing directly from where page ${immediatePrev.pageNumber} ended.\n`;
-    prompt += `Maintain the voice, perspective, and momentum established.\n`;
+    prompt += `Generate page ${pageNumber}, continuing from where page ${immediatePrev.pageNumber} ended.\n`;
+    prompt += `Maintain voice and perspective. Advance the story—continuation means progression, not repetition.\n`;
   } else if (pageNumber === 1 && referrerContext) {
     prompt += `The reader arrived by clicking [[${seed}]] in another book.\n`;
     prompt += `This is PAGE 1 of a new book. The referrer provides context for what "${seed}" means in this world.\n`;
@@ -441,15 +528,6 @@ export function buildPrompt(context: GenerationContext): string {
     prompt += `This is page 1 of "${seed}". No other pages exist yet.\n`;
     prompt += `Establish voice, perspective, and situation. Begin mid-action or mid-thought.\n`;
     prompt += `The seed suggests what this book is about—interpret it within the world.\n`;
-  }
-
-  // Page-position-aware narrative guidance
-  if (pageNumber <= 3) {
-    prompt += `\nEarly pages: Establish situation, character, immediate tension. Ground the reader.\n`;
-  } else if (pageNumber <= 10) {
-    prompt += `\nMiddle pages: Escalate, complicate, introduce obstacles. Deepen what's at stake.\n`;
-  } else {
-    prompt += `\nLater pages: Crisis, consequence, transformation. The story's weight should be felt.\n`;
   }
 
   // Remind about narrative arc for coherence
@@ -462,8 +540,6 @@ export function buildPrompt(context: GenerationContext): string {
   // ==================== OUTPUT REQUIREMENTS ====================
   prompt += `<output_requirements>\n`;
   prompt += `- 200-300 words of prose\n`;
-  prompt += `- Include 1-3 [[references]] to other books in the library (natural within the prose)\n`;
-  prompt += `- At least one action or event (something happens, not just reflection)\n`;
   prompt += `- End mid-beat—the page should pull forward, not conclude\n`;
   prompt += `- Content only, no meta-commentary or headers\n`;
   prompt += `</output_requirements>`;

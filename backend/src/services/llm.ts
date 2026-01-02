@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { GenerationContext } from '../types';
-import { buildPrompt, SYSTEM_PROMPT } from '../prompts/templates';
+import { SYSTEM_PROMPT } from '../prompts/templates';
 import { llmLogger } from './logger';
 
 const log = llmLogger;
@@ -27,22 +26,12 @@ const MODEL = 'claude-opus-4-5-20251101';
 const MAX_TOKENS = 64000;
 const THINKING_BUDGET = 15000;
 
-export async function generatePageContent(context: GenerationContext): Promise<string> {
+export async function generatePageContent(prompt: string): Promise<string> {
   // Must use streaming internally because extended thinking can exceed 10-minute timeout
   const requestId = ++totalRequests;
   nonStreamingRequests++;
   
   log.separator(`LLM REQUEST #${requestId} (streaming-collect)`);
-  
-  const prompt = buildPrompt(context);
-  
-  log.info(`Request #${requestId}: Building prompt for page generation`, {
-    seed: context.seed,
-    pageNumber: context.pageNumber,
-    hasPrevPages: context.prevPages.length > 0,
-    hasReferrerContext: !!context.referrerContext,
-    prevPageNumbers: context.prevPages.map((p: { pageNumber: number }) => p.pageNumber),
-  });
   
   log.debug(`Request #${requestId}: Prompt details`, {
     promptLength: prompt.length,
@@ -135,23 +124,12 @@ export async function generatePageContent(context: GenerationContext): Promise<s
 }
 
 export async function* streamPageContent(
-  context: GenerationContext
+  prompt: string
 ): AsyncGenerator<string, void, unknown> {
   const requestId = ++totalRequests;
   streamingRequests++;
   
   log.separator(`LLM STREAMING REQUEST #${requestId}`);
-  
-  const prompt = buildPrompt(context);
-  
-  log.info(`Stream #${requestId}: Building prompt for streaming generation`, {
-    seed: context.seed,
-    pageNumber: context.pageNumber,
-    hasPrevPages: context.prevPages.length > 0,
-    hasReferrerContext: !!context.referrerContext,
-    prevPageNumbers: context.prevPages.map((p: { pageNumber: number }) => p.pageNumber),
-    referrerSeed: context.referrerContext?.seed,
-  });
   
   log.debug(`Stream #${requestId}: Full prompt`, {
     promptLength: prompt.length,

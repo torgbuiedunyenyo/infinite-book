@@ -27,7 +27,7 @@ import {
   getRunningSummary,
   getPagesRange
 } from './database';
-import { EXTRACTION_SYSTEM } from '../prompts/templates';
+import { EXTRACTION_SYSTEM, CORE_NARRATIVE_SEED, CORE_NARRATIVE_ARC } from '../prompts/templates';
 import { createLogger } from './logger';
 
 const log = createLogger('summary');
@@ -69,6 +69,8 @@ This is the story's DNA—a rich document that will guide all future page genera
 - What themes are being explored?
 - How does this connect to or diverge from the Jay/Tan narrative?
 - What voice and tone has been established?
+- What world mechanics are relevant to this subject? (temporal navigation, underground networks, company politics, future/past dynamics, etc.)
+- How does this subject connect to temporal themes specifically, not just generic genre conventions?
 
 Also determine the narrative mode:
 - "character" - focuses on a person's experience/journey
@@ -289,10 +291,11 @@ Focus on WHERE THE STORY IS NOW, not its history:
 - Current state: What situation are characters in right now?
 - Active tensions: What conflicts are unresolved? What pressures exist?
 - Character positions: Where do characters stand relative to each other?
-- Thematic direction: What themes are being developed?
-- Story momentum: Is the story escalating? Complicating? Approaching crisis?
+- Active world mechanics: Which elements of this world are currently in play? (temporal navigation, underground networks, company operations, future/past dynamics, the edges, etc.)
+- Dominant narrative mode: What mode have recent pages been in? (action/pursuit, dialogue/conversation, introspection/reflection, investigation/discovery, etc.)
+- Pacing note: If the same narrative mode has dominated for multiple chunks, note this and suggest whether the story should continue in this mode, shift to a different mode, or move toward resolution.
 
-Write 75-125 words about CURRENT STATE, not a recap of events.
+Write 75-125 words about CURRENT STATE and DIRECTION, not a recap of events.
 </task>
 
 <output_format>
@@ -348,15 +351,33 @@ const ARC_GENERATION_MAX_RETRIES = 3;
 
 /**
  * Schedule Book Arc generation after page 1 is saved.
- * Runs asynchronously to avoid blocking the response.
- * Includes retry logic to handle transient failures.
+ * For the core narrative seed, saves the predefined arc.
+ * For inset narratives, generates arc via LLM.
  */
 export function scheduleArcGeneration(page: Page): void {
   if (page.pageNumber !== 1) {
     return;
   }
 
-  log.info('Scheduling book arc generation', { seed: page.seed });
+  // Core narrative uses predefined arc, not generated
+  if (page.seed === CORE_NARRATIVE_SEED) {
+    log.info('Core narrative seed - using predefined arc', { seed: page.seed });
+    setImmediate(async () => {
+      try {
+        await saveBookArc(CORE_NARRATIVE_ARC);
+        log.info('Predefined core narrative arc saved', { seed: page.seed });
+      } catch (error) {
+        log.error('Failed to save predefined arc', {
+          seed: page.seed,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+    return;
+  }
+
+  // Inset narratives get generated arcs
+  log.info('Scheduling book arc generation for inset narrative', { seed: page.seed });
 
   setImmediate(async () => {
     for (let attempt = 1; attempt <= ARC_GENERATION_MAX_RETRIES; attempt++) {

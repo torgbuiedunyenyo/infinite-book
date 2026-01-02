@@ -6,6 +6,7 @@ export interface Page {
   opening: string;
   closing: string;
   references: Reference[];
+  generationPrompt?: string;  // The complete prompt used to generate this page (null for pre-migration pages)
   discoveredAt?: Date;
 }
 
@@ -20,6 +21,7 @@ export interface CanonicalFact {
   name: string;
   fact: string;
   sourceSeeds: string[];  // Which books established this fact
+  priority?: number;      // 3=core narrative, 2=major world, 1=details
   createdAt?: Date;
   updatedAt?: Date;
 }

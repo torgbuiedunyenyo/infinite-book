@@ -57,6 +57,7 @@ function mapRowToPage(row: any): Page {
     pageNumber: row.page_number,
     contentLength: row.content?.length,
     referencesCount: Array.isArray(row.references) ? row.references.length : 0,
+    hasGenerationPrompt: !!row.generation_prompt,
     discoveredAt: row.discovered_at,
   });
   
@@ -68,6 +69,7 @@ function mapRowToPage(row: any): Page {
     opening: row.opening,
     closing: row.closing,
     references: row.references as Reference[],
+    generationPrompt: row.generation_prompt || undefined,
     discoveredAt: row.discovered_at,
   };
 }
@@ -218,14 +220,16 @@ export async function savePage(page: Page): Promise<Page> {
     closingLength: page.closing.length,
     referencesCount: page.references.length,
     references: page.references.map(r => r.text),
+    hasGenerationPrompt: !!page.generationPrompt,
+    generationPromptLength: page.generationPrompt?.length,
   });
   
   // Use ON CONFLICT to handle race conditions where multiple requests
   // try to save the same page simultaneously (e.g., prefetch vs streaming)
   const result = await executeQuery<{ id: number; discovered_at: Date }>(
     'savePage',
-    `INSERT INTO pages (seed, page_number, content, opening, closing, "references")
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO pages (seed, page_number, content, opening, closing, "references", generation_prompt)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      ON CONFLICT (seed, page_number) DO UPDATE SET seed = EXCLUDED.seed
      RETURNING id, discovered_at`,
     [
@@ -235,6 +239,7 @@ export async function savePage(page: Page): Promise<Page> {
       page.opening,
       page.closing,
       JSON.stringify(page.references),
+      page.generationPrompt || null,
     ]
   );
 
@@ -347,6 +352,7 @@ function mapRowToFact(row: any): CanonicalFact {
     name: row.name,
     fact: row.fact,
     sourceSeeds: row.source_seeds || [],
+    priority: row.priority ?? 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -359,21 +365,23 @@ export async function saveCanonicalFact(fact: CanonicalFact): Promise<CanonicalF
     name: fact.name,
     factLength: fact.fact.length,
     sourceSeeds: fact.sourceSeeds,
+    priority: fact.priority,
   });
   
   const result = await executeQuery<any>(
     'saveCanonicalFact',
-    `INSERT INTO canonical_facts (category, name, fact, source_seeds)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO canonical_facts (category, name, fact, source_seeds, priority)
+     VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (category, name) DO UPDATE SET
        fact = EXCLUDED.fact,
        source_seeds = (
          SELECT jsonb_agg(DISTINCT value)
          FROM jsonb_array_elements(canonical_facts.source_seeds || EXCLUDED.source_seeds)
        ),
+       priority = GREATEST(canonical_facts.priority, EXCLUDED.priority),
        updated_at = NOW()
-     RETURNING id, category, name, fact, source_seeds, created_at, updated_at`,
-    [fact.category, fact.name, fact.fact, JSON.stringify(fact.sourceSeeds)]
+     RETURNING id, category, name, fact, source_seeds, priority, created_at, updated_at`,
+    [fact.category, fact.name, fact.fact, JSON.stringify(fact.sourceSeeds), fact.priority ?? 1]
   );
   
   const savedFact = mapRowToFact(result.rows[0]);
@@ -382,6 +390,7 @@ export async function saveCanonicalFact(fact: CanonicalFact): Promise<CanonicalF
     id: savedFact.id,
     category: savedFact.category,
     name: savedFact.name,
+    priority: savedFact.priority,
   });
   
   return savedFact;
@@ -463,7 +472,7 @@ export async function getFactsByNames(names: string[]): Promise<CanonicalFact[]>
   
   const result = await executeQuery<any>(
     'getFactsByNames',
-    `SELECT id, category, name, fact, source_seeds, created_at, updated_at
+    `SELECT id, category, name, fact, source_seeds, priority, created_at, updated_at
      FROM canonical_facts
      WHERE LOWER(name) = ANY($1)
      ORDER BY name ASC`,
@@ -475,6 +484,94 @@ export async function getFactsByNames(names: string[]): Promise<CanonicalFact[]>
   log.info('Facts retrieved by names', {
     requestedNames: names,
     foundCount: facts.length,
+  });
+  
+  return facts;
+}
+
+// Get facts by priority level (for core narrative facts)
+export async function getFactsByPriority(priority: number, limit: number): Promise<CanonicalFact[]> {
+  log.info('getFactsByPriority called', { priority, limit });
+  
+  const result = await executeQuery<any>(
+    'getFactsByPriority',
+    `SELECT id, category, name, fact, source_seeds, priority, created_at, updated_at
+     FROM canonical_facts 
+     WHERE priority = $1 
+     ORDER BY updated_at DESC 
+     LIMIT $2`,
+    [priority, limit]
+  );
+  
+  const facts = result.rows.map(mapRowToFact);
+  
+  log.info('Facts retrieved by priority', {
+    priority,
+    count: facts.length,
+  });
+  
+  return facts;
+}
+
+// Get facts from a specific seed
+export async function getFactsFromSeed(seed: string, limit: number): Promise<CanonicalFact[]> {
+  log.info('getFactsFromSeed called', { seed, limit });
+  
+  const result = await executeQuery<any>(
+    'getFactsFromSeed',
+    `SELECT id, category, name, fact, source_seeds, priority, created_at, updated_at
+     FROM canonical_facts
+     WHERE source_seeds @> $1::jsonb
+     ORDER BY updated_at DESC
+     LIMIT $2`,
+    [JSON.stringify([seed]), limit]
+  );
+  
+  const facts = result.rows.map(mapRowToFact);
+  
+  log.info('Facts retrieved from seed', {
+    seed,
+    count: facts.length,
+  });
+  
+  return facts;
+}
+
+// Search facts by relevance (for cross-book facts)
+export async function searchFacts(seed: string, limit: number): Promise<CanonicalFact[]> {
+  log.info('searchFacts called', { seed, limit });
+  
+  // Extract meaningful words from seed for search
+  const searchTerms = seed
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2)
+    .slice(0, 5)
+    .join(' | ');
+  
+  if (!searchTerms) {
+    log.debug('No valid search terms extracted from seed');
+    return [];
+  }
+  
+  const result = await executeQuery<any>(
+    'searchFacts',
+    `SELECT id, category, name, fact, source_seeds, priority, created_at, updated_at,
+            ts_rank(to_tsvector('english', name || ' ' || fact), to_tsquery('english', $1)) as rank
+     FROM canonical_facts
+     WHERE to_tsvector('english', name || ' ' || fact) @@ to_tsquery('english', $1)
+     ORDER BY rank DESC
+     LIMIT $2`,
+    [searchTerms, limit]
+  );
+  
+  const facts = result.rows.map(mapRowToFact);
+  
+  log.info('Facts found via search', {
+    seed,
+    searchTerms,
+    count: facts.length,
   });
   
   return facts;

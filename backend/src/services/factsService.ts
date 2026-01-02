@@ -9,7 +9,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { CanonicalFact, Page } from '../types';
-import { saveCanonicalFact, getRelevantFactsWithBookPriority } from './database';
+import { saveCanonicalFact, getFactsByPriority, getFactsFromSeed, searchFacts } from './database';
 import { EXTRACTION_SYSTEM } from '../prompts/templates';
 import { factsLogger } from './logger';
 
@@ -73,12 +73,13 @@ Return a JSON array of facts. Each fact should have:
 - category: one of "character", "place", "event", "object", "relationship"
 - name: the entity this fact is about (use consistent naming)
 - fact: a single, specific fact (one sentence)
+- priority: importance level (3=core narrative facts about Jay/Tan/key events, 2=major world elements like PRMTT companies/temporal mechanics/the edges/underground networks, 1=all other facts)
 
 Example:
 [
-  {"category": "character", "name": "Jay", "fact": "Works at a shop in Oakland that sells clef to tourists."},
-  {"category": "place", "name": "The shop", "fact": "Located on a corner in Oakland, open late."},
-  {"category": "relationship", "name": "Jay and Tan", "fact": "Are romantic partners who met when Tan couldn't use Jay's phone."}
+  {"category": "character", "name": "Jay", "fact": "Works at a shop in Oakland that sells clef to tourists.", "priority": 3},
+  {"category": "place", "name": "The shop", "fact": "Located on a corner in Oakland, open late.", "priority": 2},
+  {"category": "relationship", "name": "Jay and Tan", "fact": "Are romantic partners who met when Tan couldn't use Jay's phone.", "priority": 3}
 ]
 
 If no concrete facts can be extracted, return an empty array: []
@@ -104,7 +105,7 @@ Return ONLY the JSON array, no other text.
     }
 
     // Parse the JSON response (strip markdown code blocks if present)
-    let extractedFacts: Array<{ category: string; name: string; fact: string }>;
+    let extractedFacts: Array<{ category: string; name: string; fact: string; priority?: number }>;
     try {
       let jsonText = textBlock.text.trim();
       // Strip markdown code block wrapper if present
@@ -156,6 +157,7 @@ Return ONLY the JSON array, no other text.
           name: fact.name,
           fact: fact.fact,
           sourceSeeds: [page.seed],
+          priority: fact.priority ?? 1,  // Default to lowest priority if not specified
         };
 
         const saved = await saveCanonicalFact(canonicalFact);
@@ -186,22 +188,46 @@ Return ONLY the JSON array, no other text.
 
 /**
  * Get relevant canonical facts for generating a new page.
- * Uses same-book priority: facts from this book first, then cross-book facts via FTS.
- * This ensures a book never "forgets" its own established facts.
+ * Uses priority-based retrieval:
+ * 1. Core narrative facts (priority 3) - ALWAYS included
+ * 2. Same-book facts - for narrative consistency
+ * 3. Cross-book facts via FTS - for world consistency
  */
 export async function getRelevantFactsForGeneration(seed: string): Promise<CanonicalFact[]> {
   log.info('Getting relevant facts for generation', { seed });
 
-  // Use priority retrieval: same-book facts first, then cross-book via FTS
-  const facts = await getRelevantFactsWithBookPriority(seed, 12);
+  // 1. Always include high-priority facts (core narrative)
+  const coreFacts = await getFactsByPriority(3, 4);
+  log.debug('Core facts retrieved', { count: coreFacts.length });
 
-  log.info('Relevant facts retrieved with book priority', {
-    seed,
-    totalFacts: facts.length,
-    factNames: facts.map(f => f.name),
+  // 2. Get same-book facts
+  const sameBookFacts = await getFactsFromSeed(seed, 4);
+  log.debug('Same-book facts retrieved', { count: sameBookFacts.length });
+
+  // 3. Get relevant cross-book facts via FTS (remaining slots)
+  const remainingSlots = Math.max(0, 12 - coreFacts.length - sameBookFacts.length);
+  const relatedFacts = remainingSlots > 0 ? await searchFacts(seed, remainingSlots) : [];
+  log.debug('Related facts retrieved', { count: relatedFacts.length });
+
+  // Combine and dedupe
+  const allFacts = [...coreFacts, ...sameBookFacts, ...relatedFacts];
+  const seen = new Set<string>();
+  const dedupedFacts = allFacts.filter(f => {
+    const key = `${f.category}:${f.name}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 
-  return facts;
+  log.info('Facts assembled for generation', {
+    seed,
+    coreCount: coreFacts.length,
+    sameBookCount: sameBookFacts.length,
+    relatedCount: relatedFacts.length,
+    totalAfterDedup: dedupedFacts.length,
+  });
+
+  return dedupedFacts.slice(0, 12);
 }
 
 /**
