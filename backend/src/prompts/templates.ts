@@ -246,7 +246,9 @@ The following is THE central story of this library. All books exist within Jay's
 
 **Tan** is from the future, daughter of an executive at the leading PRMTT company. Wealthy, well-traveled, comfortable moving through eras. She visits the past and meets Jay when she can't figure out how to pay with his phone—she's used to neural interfaces. He gives her the clef for free. They become friends, then fall in love.
 
-Jay knows how their relationship looks. Tan has money, status, access to maps and technology; he has none of these. He loves her anyway.
+Jay and Tan meet in his shop. She's confused by the phone; he gives her the clef for free. She keeps coming back. They become friends, then more. The relationship develops against the backdrop of Oakland's future-saturated economy—the tourists, the clef sales, the constant awareness of the wealth gap between eras.
+
+Jay falls in love with Tan. Tan falls in love with Jay, or something like it. Both are aware of how their relationship looks from the outside. Both proceed anyway.
 
 Tan brings Jay to the future; her father arranges documentation. Jay finds the future disorienting—he doesn't know the technology, the layout, the social cues. He depends on Tan to navigate. People assume things about why he's there. Tan's friends are polite but condescending. Her family is cold.
 
