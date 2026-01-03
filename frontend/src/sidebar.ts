@@ -52,10 +52,8 @@ export async function openSidebar(): Promise<void> {
     searchInput?.focus();
   }, 300);
   
-  // Fetch books if we haven't already
-  if (books.length === 0) {
-    await fetchBooks();
-  }
+  // Always fetch fresh books when opening the sidebar
+  await fetchBooks();
 }
 
 /**
@@ -106,13 +104,30 @@ async function fetchBooks(): Promise<void> {
     const data: BooksResponse = await response.json();
     
     books = data.books;
-    filteredBooks = books;
+    filteredBooks = sortBooksWithCoreFirst(books);
   } catch (error) {
     console.error('Failed to fetch books:', error);
   } finally {
     isLoading = false;
     renderBooksList();
   }
+}
+
+// The core narrative that should always appear at the top
+const CORE_NARRATIVE_SEED = 'The Shape of Time';
+
+/**
+ * Sort books with "The Shape of Time" always at the top
+ */
+function sortBooksWithCoreFirst(bookList: DiscoveredBook[]): DiscoveredBook[] {
+  return [...bookList].sort((a, b) => {
+    const aIsCore = a.seed === CORE_NARRATIVE_SEED;
+    const bIsCore = b.seed === CORE_NARRATIVE_SEED;
+    
+    if (aIsCore && !bIsCore) return -1;
+    if (!aIsCore && bIsCore) return 1;
+    return 0; // Keep original order for non-core books
+  });
 }
 
 /**
@@ -122,11 +137,12 @@ function filterBooks(): void {
   const query = searchQuery.toLowerCase().trim();
   
   if (!query) {
-    filteredBooks = books;
+    filteredBooks = sortBooksWithCoreFirst(books);
   } else {
-    filteredBooks = books.filter(book => 
+    const filtered = books.filter(book => 
       book.seed.toLowerCase().includes(query)
     );
+    filteredBooks = sortBooksWithCoreFirst(filtered);
   }
   
   renderBooksList();
