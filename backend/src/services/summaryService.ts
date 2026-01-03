@@ -294,11 +294,11 @@ Write a MOMENTUM summary for "${seed}" after page ${currentPage}.
 
 Focus on WHERE THE STORY IS NOW, not its history:
 - Current state: What situation are characters in right now?
-- Active tensions: What conflicts are unresolved? What pressures exist?
+- Active tensions: What conflicts are unresolved? What pressures exist? If tensions have fully resolved, identify what NEW tension, complication, or desire should emerge—stories continue evolving even after resolution.
 - Character positions: Where do characters stand relative to each other?
 - Active world mechanics: Which elements of this world are currently in play? (temporal navigation, underground networks, company operations, future/past dynamics, the edges, etc.)
-- Dominant narrative mode: What mode have recent pages been in? (action/pursuit, dialogue/conversation, introspection/reflection, investigation/discovery, etc.)
-- Arc direction: Identify which part of the narrative arc the story should be in based on page count. If current part has exceeded its target pages, state that the story MUST transition to the next arc phase.
+- Dominant narrative mode: What mode have recent pages been in? (action/pursuit, dialogue/conversation, introspection/reflection, investigation/discovery, etc.) If the same mode has dominated for 15+ pages, flag this and suggest a shift.
+- Arc direction: Identify which part of the narrative arc the story should be in based on page count. If current part has exceeded its target pages, state that the story MUST transition to the next arc phase. If the arc is complete, identify what new chapter or direction the story should explore.
 
 Write 75-125 words about CURRENT STATE and DIRECTION, not a recap of events.
 </task>

@@ -18,9 +18,10 @@ import { Pool } from 'pg';
 // Configuration
 const CORE_SEED = "The Shape of Time";
 const CORE_TARGET_PAGE = 150;
-const SIDE_STORY_TARGET_PAGE = 6;
+const SIDE_STORY_TARGET_PAGE = 20;
 const SIDE_STORY_COUNT = 10;
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
+const MAX_PAGE_RETRIES = 5; // Retry failed pages up to 5 times before giving up
 
 // Database connection
 const pool = new Pool({
@@ -53,11 +54,17 @@ async function getPageReferences(seed: string, pageNumber: number): Promise<{ te
 }
 
 async function getAllReferencesFromBook(seed: string): Promise<string[]> {
+  // Order by first appearance (minimum page number where reference appears)
   const result = await pool.query(
-    `SELECT DISTINCT jsonb_array_elements("references")->>'seed' as ref_seed 
-     FROM pages 
-     WHERE seed = $1 
-     ORDER BY ref_seed`,
+    `SELECT ref_seed, MIN(page_number) as first_appearance
+     FROM (
+       SELECT page_number, jsonb_array_elements("references")->>'seed' as ref_seed 
+       FROM pages 
+       WHERE seed = $1
+     ) refs
+     WHERE ref_seed IS NOT NULL
+     GROUP BY ref_seed
+     ORDER BY first_appearance, ref_seed`,
     [seed]
   );
   return result.rows.map(r => r.ref_seed).filter(Boolean);
@@ -164,16 +171,34 @@ async function generateBookToPage(
     // For page 1 of side stories, include referrer context
     const useReferrer = page === 1 && referrerSeed && referrerPage;
     
-    const result = await generatePage(
-      seed, 
-      page, 
-      useReferrer ? referrerSeed : undefined, 
-      useReferrer ? referrerPage : undefined
-    );
+    // Retry loop for each page
+    let pageSuccess = false;
+    let lastError = '';
+    for (let attempt = 1; attempt <= MAX_PAGE_RETRIES; attempt++) {
+      const result = await generatePage(
+        seed, 
+        page, 
+        useReferrer ? referrerSeed : undefined, 
+        useReferrer ? referrerPage : undefined
+      );
+      
+      if (result.success) {
+        pageSuccess = true;
+        break;
+      }
+      
+      lastError = result.error || 'Unknown error';
+      
+      if (attempt < MAX_PAGE_RETRIES) {
+        console.log(`    Page ${page} failed (attempt ${attempt}/${MAX_PAGE_RETRIES}): ${lastError}`);
+        console.log(`    Waiting 10s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, 10000));
+      }
+    }
     
-    if (!result.success) {
+    if (!pageSuccess) {
       progress.status = 'failed';
-      progress.error = result.error;
+      progress.error = `Failed after ${MAX_PAGE_RETRIES} attempts: ${lastError}`;
       onProgress?.(progress);
       return progress;
     }

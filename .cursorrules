@@ -1,0 +1,128 @@
+# The Infinite Book - Project Rules
+
+## Project Overview
+
+This is a procedurally-generated interactive fiction platform. It creates an infinite, consistent fictional universe centered around "The Shape of Time" - a time-travel love story between Jay (2025 Oakland) and Tan (~2150 future).
+
+## Architecture
+
+### Backend (Node.js/Express/TypeScript)
+- Express 5 server on port 3000
+- PostgreSQL database for persistent storage
+- Claude Opus 4.5 with extended thinking (15k token budget) for generation
+- Langfuse for LLM observability (optional)
+
+### Frontend (Vite/TypeScript/Vanilla JS)
+- Vite dev server on port 5173
+- Vanilla TypeScript, no framework
+- EB Garamond typography with warm paper aesthetic
+- Aggressive pre-generation (3 pages ahead + references)
+
+## Key Services
+
+| Service | Purpose |
+|---------|---------|
+| `pageGenerator.ts` | Orchestrates page generation with caching, streaming, access control |
+| `summaryService.ts` | Hierarchical context: book arcs, chunk summaries, running summaries |
+| `factsService.ts` | Extracts/retrieves canonical facts for cross-book consistency |
+| `evaluationService.ts` | Quality assessment (discrete + LLM-as-judge) |
+| `llm.ts` | Claude integration with extended thinking |
+
+## Consistency System
+
+Pages are generated with hierarchical context:
+1. **Book Narrative Arc** (pages 2+): 150-250 word "story DNA" from page 1
+2. **Running Summary** (pages 6+): Current momentum updated every 5 pages
+3. **Chunk Summaries** (pages 6+): 5-page factual summaries
+4. **Sliding Window**: Full text of 3 previous pages
+5. **Canonical Facts**: Cross-book world consistency with priority levels
+
+## Code Conventions
+
+### Seed Normalization
+All book seeds must be Title Case normalized using `normalizeSeed()` from `types.ts`:
+```typescript
+import { normalizeSeed } from '../types';
+const seed = normalizeSeed(rawSeed); // "the shop" → "The Shop"
+```
+
+### Logging
+Use the structured logger from `logger.ts`:
+```typescript
+import { createLogger } from './logger';
+const log = createLogger('my-service');
+log.info('Message', { key: 'value' });
+```
+
+### Database Operations
+All database operations go through `database.ts`. Never raw SQL in services.
+
+### LLM Calls
+- Use `claude-opus-4-5-20251101` for generation
+- Use `claude-sonnet-4-5-20250929` for extraction/evaluation (cost-effective)
+- Always enable extended thinking: `thinking: { type: 'enabled', budget_tokens: N }`
+
+## World Rules (CRITICAL for prompts/templates)
+
+### Time Travel Physics (CORRECT)
+- Time has 3 dimensions: Primas, Phantas, Mystas
+- All times exist independently and continue evolving
+- There is ONE of you across all time (no meeting yourself)
+- Time is self-healing (disturbances fade with distance)
+- Travel takes time/effort using PRMTTs
+- Aging happens in all directions of travel
+
+### Time Travel Tropes (FORBIDDEN - never use)
+- Time loops / reliving same day
+- Meeting yourself / duplicate selves
+- Butterfly effects / small changes cascading
+- Paradoxes (grandfather, bootstrap)
+- Mystical weirdness (flickering, eerie feelings)
+- Determinism / fate / "meant to happen"
+
+### Social Dynamics
+- Future exploits past: tourism, resource extraction, labor arbitrage
+- Temporal prejudice: past people face discrimination
+- PRMTTs: devices for time travel (controlled by companies)
+- The underground: networks helping undocumented temporal travelers
+- Cross-era relationships attract suspicion (assumed transactional)
+
+### Core Characters
+- **Jay**: Works at a shop in 2025 Oakland, sells clef to tourists
+- **Tan**: From ~2150, daughter of PRMTT company executive
+- They are ROMANTIC PARTNERS (not relatives - power dynamics look like other relationships but aren't)
+
+## Access Control
+
+Pages must be discovered naturally:
+1. Page N requires page N-1 to exist (sequential access)
+2. New books only via [[references]] (no arbitrary URL access)
+3. "The Shape of Time" is the only canonical seed
+
+## Testing
+
+Start servers:
+```bash
+cd backend && npm run dev   # Port 3000
+cd frontend && npm run dev  # Port 5173
+```
+
+The frontend proxies `/api` to the backend via Vite config.
+
+## Common Tasks
+
+### Add new evaluation criteria
+Edit `evaluationService.ts` - add to `DISCRETE_EVALUATIONS` or `QUALITATIVE_EVALUATIONS`
+
+### Modify generation prompts
+Edit `prompts/templates.ts` - update `WORLD_ESSENCE`, `buildPrompt()`, or narrative guidance
+
+### Add database columns
+1. Create migration in `database/migrations/`
+2. Update `database/schema.sql` with complete state
+3. Update TypeScript types in `types.ts`
+4. Update `database.ts` queries
+
+### Change consistency behavior
+Edit `summaryService.ts` for hierarchical context or `factsService.ts` for canonical facts
+

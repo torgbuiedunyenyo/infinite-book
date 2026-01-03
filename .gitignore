@@ -1,7 +1,27 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Environment files (contain secrets)
 .env
+.env.local
+.env.*.local
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS files
 .DS_Store
-/Users/ratpartyserver/git/library-of-babel/backend/.env
-/Users/ratpartyserver/git/library-of-babel/backend/.env.local
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# TypeScript cache
+*.tsbuildinfo
