@@ -17,7 +17,7 @@ import { Pool } from 'pg';
 
 // Configuration
 const CORE_SEED = "The Shape of Time";
-const CORE_TARGET_PAGE = 50;
+const CORE_TARGET_PAGE = 150;
 const SIDE_STORY_TARGET_PAGE = 6;
 const SIDE_STORY_COUNT = 10;
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
