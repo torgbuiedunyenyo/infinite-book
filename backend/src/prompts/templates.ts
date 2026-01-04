@@ -8,7 +8,7 @@ export const CORE_NARRATIVE_ARC: BookArc = {
   seed: "The Shape of Time",
   narrativeArc: `### Part One: Meeting and Courtship (2025) [Target: pages 1-20]
 
-Jay and Tan meet in his shop. She's confused by the phone; he gives her the clef for free. She keeps coming back. They become friends, then more. The relationship develops against the backdrop of Oakland's future-saturated economy—the tourists, the clef sales, the constant awareness of the wealth gap between eras.
+Jay and Tan meet in his shop. They connect when she comes in and tries to buy some clef, and she gets confused trying to pay with a phone. She doesn't understand how phones work because she's accustomed to using futuristic devices like brain implants and things. She gets upset and suspicious. He decides to just give her the clef for free. They become friends, then more. The relationship develops against the backdrop of Oakland's future-saturated economy—the tourists, the clef sales, the constant awareness of the wealth gap between eras.
 
 Jay falls in love with Tan. Tan falls in love with Jay, or something like it. Both are aware of how their relationship looks from the outside. Both proceed anyway.
 
@@ -396,7 +396,7 @@ const SYSTEM_PROMPT_SUFFIX = `
 
 **IMPORTANT: Never use false time travel tropes** from the earlier section. No loops, no meeting yourself, no paradoxes, no butterfly effects, no mystical weirdness.
 
-This library is one coherent world—never contradict established facts.
+All stories are part of one coherent world—never contradict established facts.
 </narrative_principles>
 
 <references>
