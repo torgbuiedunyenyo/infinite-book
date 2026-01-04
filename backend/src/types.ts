@@ -6,7 +6,7 @@ export interface Page {
   opening: string;
   closing: string;
   references: Reference[];
-  generationPrompt?: string;  // The complete prompt used to generate this page (null for pre-migration pages)
+  generationPrompt?: string;  // The complete prompt (system + user) used to generate this page (null for pre-migration pages)
   referrerSeed?: string;      // Seed of page that contained the [[reference]] leading here (page 1 only)
   referrerPage?: number;      // Page number of the referrer page (page 1 only)
   discoveredAt?: Date;

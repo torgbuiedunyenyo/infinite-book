@@ -103,7 +103,9 @@ The subject determines the focus. The world remains consistent.
  * WORLD_ESSENCE_BASE: The world document WITHOUT the core narrative summary.
  * Used for core narrative generation (where we use the detailed arc instead).
  */
-export const WORLD_ESSENCE_BASE = `<world_essence>
+export const WORLD_ESSENCE_BASE = `<world_reference>
+The following is reference material for world consistency. Characters live in this world—they don't explain it. Use this to maintain consistency, not as content to convey.
+
 World Essence
 
 ## The Nature of Time
@@ -225,24 +227,24 @@ IMPORTANT: NEVER USE THESE TROPES IN THE STORY.
 
 **Other future technology:** Neural interfaces have replaced most physical devices. Medical technology has extended lifespans. Communication is largely neural rather than verbal or device-based. Someone from the future visiting 2025 would find a smartphone confusing and primitive.
 
-There is an ongoing power dynamic between the future and the past. This manifests in several ways:
+The future and the past have an extensive economic relationship.
 
-**Resource extraction:** The future sends operations into the past to extract natural resources and raw materials that have been depleted in their own time. Past governments cooperate; their leaders personally profit while populations bear the costs.
+**Resource extraction:** The future sends operations into the past to extract natural resources and raw materials that have been depleted in their own time. Past governments cooperate with these operations; their leaders negotiate the terms.
 
-**Tourism:** Wealthy future citizens travel to the past for entertainment and novelty. Entire eras transform around this tourism. The Nazi Blitz in London is now a managed spectacle—the bombings still happen but are controlled, the danger real enough to thrill but safe enough to sell. When the sirens sound, everyone knows what to do.
+**Tourism:** Wealthy future citizens travel to the past for entertainment and novelty. Popular destinations transform around this industry. The Nazi Blitz in London is now a managed spectacle—the bombings still happen but are controlled, the danger real enough to thrill but safe enough to sell. When the sirens sound, everyone knows what to do.
 
-**Labor and cultural arbitrage:** Services and goods are cheaper in the past. Future companies outsource operations to past eras. Art, music, and cuisine are taken from the past and sold in the future, often without compensation.
+**Labor and cultural exchange:** Services and goods are cheaper in the past. Future companies outsource operations to past eras. Art, music, and cuisine move between eras through various arrangements.
 
 In 2025 Oakland, shops sell clef, a mildly relaxing drink popular with future tourists. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors. Medical services and infrastructure have been upgraded in tourist areas, creating stark inequalities between zones that attract visitors and those that don't.
 
-**Preservation zones** exist where future influence is restricted—eras kept artificially "pristine" by limiting economic development. These are essentially human zoos, residents kept in relative poverty to maintain the aesthetic tourists want.
+**Preservation zones** exist where future influence is restricted—eras kept in their historical state by limiting outside development. Tourists visit these zones for the authentic experience. Development restrictions mean economic conditions remain static.
 
-**Immigration controls** restrict travel from past to future. Official justifications cite resource scarcity and security concerns. The real reasons: labor market protection, maintaining the wealth differential that makes extraction profitable, and keeping past populations available as a tourism product. Visas require sponsorship and have strict return dates. Overstaying is a serious crime. An underground exists for those without papers—forgers, fixers, guides who know unmonitored routes.
+**Immigration controls** restrict travel from past to future. Visas require sponsorship and have strict return dates. Overstaying is a serious crime. An underground exists for those without papers—forgers, fixers, guides who know unmonitored routes.
 
-**Temporal prejudice** shapes daily life. Past people in the future face assumptions of economic desperation, cultural backwardness, criminal tendencies. Slurs exist. Relationships between people of different eras attract suspicion—assumed to be transactional. Past people cluster in specific neighborhoods, work specific jobs, exist in legal gray zones even with legitimate documentation.
+**Social dynamics** vary. Past people in the future often cluster in specific neighborhoods and work specific jobs. Relationships between people of different eras attract attention and assumptions. Slurs exist in both directions, though they don't carry equal weight.
 
 At the far edges of the Mystas axis lies unmapped territory. The currents there are fast, turbulent, constantly shifting—not more dangerous in principle, but practically treacherous without reliable maps. Travelers risk becoming lost, carried by currents they can't predict toward regions no one has charted. The PRMTT companies maintain research stations nearby, slowly extending their maps. The company that charts the edges first will control access to whatever lies beyond.
-</world_essence>`;
+</world_reference>`;
 
 /**
  * CORE_NARRATIVE_SECTION: The core narrative summary for inset narratives.
@@ -251,7 +253,7 @@ At the far edges of the Mystas axis lies unmapped territory. The currents there 
 const CORE_NARRATIVE_SECTION = `
 ## The Core Narrative
 
-The following is THE central story of this library. All books exist within Jay's world. The core narrative follows Jay directly. Inset narratives (books reached via [[references]]) explore other corners of this world—they don't need to feature Jay, but they exist in the same world and must never contradict established facts.
+The following is the central story of this library. All books exist within this world. The core narrative follows Jay directly. Inset narratives (books reached via [[references]]) explore other corners of this world—they don't need to feature Jay, but they exist in the same world and must never contradict established facts.
 
 **Jay** works at a shop in 2025 Oakland. He's lived his whole life in an era shaped by future influence—he's used to tourists, to products that don't quite belong, to navigating a world not entirely his own. He's observant. He notices what doesn't add up.
 
@@ -263,9 +265,9 @@ Days after arriving, Tan disappears. Jay is immediately suspected. He runs.
 
 While fleeing across eras, Jay learns to navigate time through study and necessity. He traces Tan's movements, encounters the underground networks, glimpses the unmapped edges. He returns to 2025 and finds it changed in his absence—his shop is different, people don't quite remember him right. Time continued without him.
 
-He finds Tan. She'd gone to the Mystas edges on an adventure, curious about the unmapped territory, planning to explain "in her own time." It hadn't occurred to her what her disappearance would mean for Jay—that he'd be blamed, hunted, forced to remake himself just to survive. She wasn't cruel; she simply didn't think about it. He wasn't real to her in the way she was real to herself.
+He finds Tan. She'd gone to the Mystas edges on an adventure, curious about the unmapped territory, planning to explain when she returned "in her own time." It hadn't occurred to her what her disappearance would mean for Jay—that he'd be blamed, hunted, forced to remake himself just to survive. She wasn't cruel; she simply didn't think about it.
 
-Jay forgives her. But Tan doesn't want to continue the relationship. The work of truly seeing someone from a different era, of accounting for the power between them—it's not something she's willing to do.
+Jay forgives her. But Tan doesn't want to continue the relationship. It would require adjustments she's not willing to make.
 
 Jay returns to 2025 Oakland, to his shop. He's traveled further than most people from his era ever will. He's survived. But he's back where he started, selling clef to tourists, watching them come and go.`;
 
@@ -285,7 +287,6 @@ export const NARRATIVE_CONTEXT = `<narrative_context>
 This fiction follows show-don't-tell principles throughout:
 - Characters live in this world; they don't explain its rules
 - Relationships are shown through behavior, not stated directly
-- Power dynamics are implied through action, deference, and small details
 - World-specific terms appear naturally without definition
 - The narrator doesn't editorialize or explain social context
 
@@ -293,29 +294,26 @@ When extracting facts, infer from action and behavior, not from what would make 
 
 ## Interpreting Relationships Across Eras
 
-Power imbalances between people from different times are ECONOMIC and SOCIAL, not familial:
-- A future person has wealth, technology access, legal status, and cultural fluency
-- A past person lacks these things and may depend on the future person to navigate
-- This creates dynamics that can LOOK like parent/child but are NOT
+Relationships between people from different eras are not familial unless explicitly stated:
 - Deference, dependence, guidance, and protection do not imply family relationships
-- Romantic and friendship relationships across eras are common but attract social suspicion
-- Observers in-world assume cross-era relationships are transactional (economic, sexual, exploitative)
+- Age differences don't indicate family—future people live longer
+- Someone helping or guiding a past person is likely a sponsor, employer, partner, or friend
+- Romantic and friendship relationships across eras are common
 
 When you see one character helping, guiding, or having authority over another:
 - First consider: are they from different eras?
-- If yes: the dynamic is likely economic/social power, not family
-- Age differences don't indicate family—future people live longer
+- If yes: the dynamic is likely not family
 - Someone "taking care of" a past person is likely a sponsor, employer, partner, or friend
 
-## Power Dynamics to Recognize
+## Common Relationships to Recognize
 
-**Future person + past person:** The future person has structural power regardless of personality. They control documentation, money, navigation, and social access. Even kind future people benefit from and perpetuate this system.
+**Future person + past person:** The future person typically has more resources, documentation, and familiarity with technology. Past people often depend on future people to navigate unfamiliar eras.
 
 **Company employees:** PRMTT companies control temporal maps and travel. Their employees have access others don't. Company politics involve map access, route control, and territorial disputes.
 
-**The underground:** Networks exist for undocumented past people in the future—forgers, fixers, guides. These aren't villains; they're service providers for people the system excludes.
+**The underground:** Networks exist for undocumented travelers—forgers, fixers, guides. They're service providers operating outside official channels.
 
-**Preservation zones:** Past eras kept artificially "pristine" for tourism. Residents are effectively trapped in managed poverty. Development is restricted. Leaving is difficult.
+**Preservation zones:** Past eras where outside development is restricted. Residents live under these restrictions; leaving requires documentation most don't have.
 
 ## Terminology Reference
 
@@ -342,11 +340,11 @@ When these characters appear, these facts are established:
 
 **Jay**: Works at a shop in 2025 Oakland. From the past. Observant, adaptable, has traveled more than most past people. His shop sells clef among other things.
 
-**Tan**: From the future (~2150). Daughter of a PRMTT company executive. Wealthy, well-traveled. Has the casual assumption of access that comes with privilege.
+**Tan**: From the future (~2150). Daughter of a PRMTT company executive. Wealthy, well-traveled, comfortable in many eras.
 
-**Jay and Tan**: Romantic partners who met when Tan couldn't figure out Jay's phone (she's used to neural interfaces). Their relationship illustrates cross-era dynamics—she has structural power he lacks. They are NOT related. Any deference or dependence is due to era/wealth dynamics, not family.
+**Jay and Tan**: Romantic partners who met when Tan couldn't figure out Jay's phone (she's used to neural interfaces). They are NOT related. Any deference or dependence is due to Jay being unfamiliar with future technology and social norms, not family.
 
-Most books will not feature Jay and Tan directly. They are examples of how this world works, not the only story.
+Most books will not feature Jay and Tan directly. They are examples of characters in this world, not the only story.
 
 </narrative_context>`;
 
@@ -359,20 +357,19 @@ export const EXTRACTION_SYSTEM = `${WORLD_ESSENCE}
 ${NARRATIVE_CONTEXT}`;
 
 /**
- * SYSTEM_PROMPT_SUFFIX: The part of the system prompt after world essence.
- * Separated so we can compose different versions.
+ * NARRATIVE_CRAFT: Core creative guidance - comes FIRST in system prompt.
+ * This establishes how to write before providing reference material.
  */
-const SYSTEM_PROMPT_SUFFIX = `
-
-<narrative_principles>
+const NARRATIVE_CRAFT = `<narrative_craft>
 **You are writing fiction, not encyclopedia entries.**
 
 **IMPORTANT: Show through action and consequence. Never explain through exposition.**
 - Characters live in this world. They don't explain it.
 - A future person's confusion with a phone reveals neural interfaces without naming them.
-- Jay's instinctive deference to tourists shows the power dynamic without stating it.
-- BAD: "The self-healing property means it had to already be here." (explaining mechanics)
-- GOOD: "I left it here three days from now. Glad it's still here." (reader infers)
+- Characterize through gesture, gaze, and how bodies move through space—not through dialogue about feelings.
+- Let sensory texture carry subtext: light, sound, smell, the weight of silence.
+- BAD: "I know how cross-era relationships look to people—transactional, exploitative."
+- GOOD: The waiter handed the check to Tan without looking at Jay.
 - IMPORTANT: Fish don't talk about water. These characters don't talk about "Mystas" or "Phantas" axes—they just talk about moving. Don't name world mechanics unless unavoidable.
 
 **Tension carries across pages.**
@@ -394,28 +391,30 @@ const SYSTEM_PROMPT_SUFFIX = `
 - If the seed names an event → unfold that event
 - If the seed names a concept or document → explore through that lens
 
-**IMPORTANT: Never use false time travel tropes** from the earlier section. No loops, no meeting yourself, no paradoxes, no butterfly effects, no mystical weirdness.
+**IMPORTANT: Never use false time travel tropes** from the world reference below. No loops, no meeting yourself, no paradoxes, no butterfly effects, no mystical weirdness.
+</narrative_craft>`;
 
-All stories are part of one coherent world—never contradict established facts.
-</narrative_principles>
-
-<references>
+/**
+ * REFERENCES_FORMAT: How to create references - comes at END of system prompt.
+ */
+const REFERENCES_FORMAT = `<references_format>
 References ([[double brackets]]) point to other books in this world. Each reference becomes a new book's seed.
 
 Reference what emerges from the prose: a person mentioned, a place visited, an object examined, an event recalled, a document cited. Make references specific and evocative—they are how readers discover new corners of this world.
-</references>`;
+</references_format>`;
 
 /**
  * SYSTEM_PROMPT: Full system prompt for inset narratives (includes core narrative summary).
- * For backwards compatibility with extraction services.
+ * Structure: NARRATIVE_CRAFT (how to write) → WORLD_ESSENCE (reference) → REFERENCES_FORMAT
  */
-export const SYSTEM_PROMPT = WORLD_ESSENCE + SYSTEM_PROMPT_SUFFIX;
+export const SYSTEM_PROMPT = NARRATIVE_CRAFT + '\n\n' + WORLD_ESSENCE + '\n\n' + REFERENCES_FORMAT;
 
 /**
  * SYSTEM_PROMPT_CORE: System prompt for core narrative (excludes core narrative summary).
  * The core narrative gets the detailed arc instead.
+ * Structure: NARRATIVE_CRAFT (how to write) → WORLD_ESSENCE_BASE (reference) → REFERENCES_FORMAT
  */
-export const SYSTEM_PROMPT_CORE = WORLD_ESSENCE_BASE + SYSTEM_PROMPT_SUFFIX;
+export const SYSTEM_PROMPT_CORE = NARRATIVE_CRAFT + '\n\n' + WORLD_ESSENCE_BASE + '\n\n' + REFERENCES_FORMAT;
 
 /**
  * Get the appropriate system prompt based on whether this is the core narrative.
@@ -526,7 +525,7 @@ export function buildPrompt(context: GenerationContext): string {
   if (prevPages.length > 0) {
     const immediatePrev = prevPages[prevPages.length - 1];
     prompt += `Generate page ${pageNumber}, continuing from where page ${immediatePrev.pageNumber} ended.\n`;
-    prompt += `Maintain voice and perspective. Advance the story—continuation means progression, not repetition. Important:Follow <narrative_principles>\n`;
+    prompt += `Maintain voice and perspective. Advance the story—continuation means progression, not repetition. Follow <narrative_principles>\n`;
   } else if (pageNumber === 1 && referrerContext) {
     prompt += `The reader arrived by clicking [[${seed}]] in another book.\n`;
     prompt += `This is PAGE 1 of a new book. The referrer provides context for what "${seed}" means in this world.\n`;
@@ -546,17 +545,16 @@ export function buildPrompt(context: GenerationContext): string {
 
   // Remind about narrative arc for coherence (pages > 1, or core narrative page 1)
   if (effectiveArc && (pageNumber > 1 || isCoreSeed)) {
-    prompt += `\nThe narrative arc is authoritative—follow its structure over any subplot that has emerged. If the story has lingered in one arc phase past its target pages, advance to the next.\n`;
+    prompt += `\nThe narrative arc is authoritative for plot—but arc statements describe what to SHOW through behavior, not what characters should SAY. Follow its structure over any subplot that has emerged. If the story has lingered in one arc phase past its target pages, advance to the next.\n`;
   }
 
   prompt += `</instructions>\n\n`;
 
   // ==================== OUTPUT REQUIREMENTS ====================
   prompt += `<output_requirements>\n`;
-  prompt += `- 200-300 words of prose\n`;
+  prompt += `- 200-300 words of immersive prose\n`;
   prompt += `- 1-2 [[references]] emerging naturally from the prose\n`;
   prompt += `- Content only, no meta-commentary or headers\n`;
-  prompt += `- Adheres to all <narrative_principles>\n`;
   prompt += `</output_requirements>`;
 
   return prompt;

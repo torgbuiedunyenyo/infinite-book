@@ -15,7 +15,7 @@ CREATE TABLE pages (
     opening TEXT NOT NULL,
     closing TEXT NOT NULL,
     "references" JSONB DEFAULT '[]'::jsonb,
-    generation_prompt TEXT,                          -- Complete prompt sent to Claude
+    generation_prompt TEXT,                          -- Complete prompt (system + user) sent to Claude
     referrer_seed TEXT,                              -- Seed of page that linked here
     referrer_page INTEGER,                           -- Page number that linked here
     discovered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -33,7 +33,7 @@ COMMENT ON COLUMN pages.content IS 'Full page content including [[references]]';
 COMMENT ON COLUMN pages.opening IS 'First ~50 words for preview';
 COMMENT ON COLUMN pages.closing IS 'Last ~50 words for preview';
 COMMENT ON COLUMN pages."references" IS 'JSON array of {text, seed} objects for [[references]]';
-COMMENT ON COLUMN pages.generation_prompt IS 'The complete user prompt sent to Claude when generating this page';
+COMMENT ON COLUMN pages.generation_prompt IS 'The complete prompt (system + user) sent to Claude when generating this page';
 COMMENT ON COLUMN pages.referrer_seed IS 'Seed of the page that contained the reference that led to this page (page 1 only)';
 COMMENT ON COLUMN pages.referrer_page IS 'Page number of the referrer page (page 1 only)';
 
