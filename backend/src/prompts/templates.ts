@@ -6,13 +6,13 @@ export const CORE_NARRATIVE_SEED = "The Shape of Time";
 
 export const CORE_NARRATIVE_ARC: BookArc = {
   seed: "The Shape of Time",
-  narrativeArc: `### Part One: Meeting and Courtship (2025) [Target: pages 1-20]
+  narrativeArc: `### Part One: Meeting and Courtship (2025) [Target: pages 1-15]
 
 Jay and Tan meet in his shop. They connect when she comes in and tries to buy some clef, and she gets confused trying to pay with a phone. She doesn't understand how phones work because she's accustomed to using futuristic devices like brain implants and things. She gets upset and suspicious. He decides to just give her the clef for free. They become friends, then more. The relationship develops against the backdrop of Oakland's future-saturated economy—the tourists, the clef sales, the constant awareness of the wealth gap between eras.
 
 Jay falls in love with Tan. Tan falls in love with Jay, or something like it. Both are aware of how their relationship looks from the outside. Both proceed anyway.
 
-### Part Two: Arrival in the Future [Target: pages 21-40]
+### Part Two: Arrival in the Future [Target: pages 16-30]
 
 Tan wants Jay to see her world. Her father arranges documentation. They travel to the future together.
 
@@ -22,7 +22,7 @@ The social dynamics are worse. Everyone assumes he's with Tan for citizenship, m
 
 Jay tries to adapt. He studies temporal mechanics, looks for work that doesn't require skills he doesn't have. Progress is slow and humiliating.
 
-### Part Three: The Disappearance [Target: pages 41-60]
+### Part Three: The Disappearance [Target: pages 31-45]
 
 A few days after their arrival, Tan disappears.
 
@@ -34,7 +34,7 @@ Jay reports her missing. Within hours, he's the primary suspect. The investigati
 
 He runs.
 
-### Part Four: The Flight and Investigation [Target: pages 61-80]
+### Part Four: The Flight and Investigation [Target: pages 46-60]
 
 Jay flees into the temporal margins—times and routes that aren't heavily monitored, places where past people disappear into the cracks of the system. He makes contact with the underground networks that help temporal immigrants: forgers, fixers, people who know hidden paths through time.
 
@@ -49,7 +49,7 @@ His investigation takes him through multiple eras:
 
 Along the way, he learns to navigate through study and practice. He becomes something he never expected: a competent time traveler, self-taught under pressure.
 
-### Part Five: The Truth [Target: pages 81-100]
+### Part Five: The Truth [Target: pages 61-75]
 
 Jay eventually discovers what happened to Tan.
 
@@ -59,7 +59,7 @@ She didn't consider what her disappearance would mean for Jay. It didn't occur t
 
 Jay finds her returning from the edges, or at a station near them. She's fine. She's had an incredible experience. She's excited to tell him about it.
 
-### Part Six: Resolution [Target: pages 101-120]
+### Part Six: Resolution [Target: pages 76-90]
 
 Jay has to decide what to do with this.
 
@@ -75,7 +75,7 @@ Jay returns to Oakland, to 2025, to his shop. The time has changed in his absenc
 
 He goes back to work. He sells clef to future tourists. He watches them come and go, knowing what he knows, carrying what he's learned. The edges remain unmapped. The exploitation continues. Nothing has been fixed.
 
-### Part Seven: Infinite Adventures Through The Shapes of Time [Target: pages 121-∞]
+### Part Seven: Infinite Adventures Through The Shapes of Time [Target: pages 90-∞]
 
 Jay eventually gets bored of selling clef and decides to join the underground. He travels through many different times and places, from the far past to the far future, along the Primas, Phantas, and Mystas axes, and he discovers, unlearns, and rediscovers the true shape of time. Sometimes he helps people, sometimes he accidentally hurts them. He even finds himself sometimes in the position Tan was in, of being a person with unexamined power.
 `,
