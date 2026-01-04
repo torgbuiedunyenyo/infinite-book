@@ -947,6 +947,10 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
   try {
     await fetchPageStreaming(seed, page, referrer);
     
+    // Scroll to top again after content loads
+    // (mobile momentum scrolling from swipe gestures can override the initial scroll)
+    window.scrollTo(0, 0);
+    
     const duration = performance.now() - startTime;
     log.info('Navigation complete', {
       seed,
@@ -1111,6 +1115,9 @@ function handleKeyDown(e: KeyboardEvent): void {
       window.scrollTo(0, 0);
       
       fetchPageStreaming(prev.seed, prev.page).then(() => {
+        // Scroll to top again after content loads (helps on mobile)
+        window.scrollTo(0, 0);
+        
         // Prefetch previous page
         if (prev.page > 1) {
           prefetchPage(prev.seed, prev.page - 1);

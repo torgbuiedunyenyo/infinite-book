@@ -75,9 +75,9 @@ Jay returns to Oakland, to 2025, to his shop. The time has changed in his absenc
 
 He goes back to work. He sells clef to future tourists. He watches them come and go, knowing what he knows, carrying what he's learned. The edges remain unmapped. The exploitation continues. Nothing has been fixed.
 
-### Part Seven: Infinite Adventures Through The Shapes of Time [Target: pages 90-∞]
+### Part Seven: The Undertow [Target: pages 90-∞]
 
-Jay eventually gets bored of selling clef and decides to join the underground. He travels through many different times and places, from the far past to the far future, along the Primas, Phantas, and Mystas axes, and he discovers, unlearns, and rediscovers the true shape of time. Sometimes he helps people, sometimes he accidentally hurts them. He even finds himself sometimes in the position Tan was in, of being a person with unexamined power.
+Jay joins the underground. The work pulls him through many times—far past to far future, along Primas, Phantas, and Mystas. Each job tangles him deeper: debts, dependencies, factions that won't forget his face. He finds himself in Tan's position sometimes—the one with power over someone desperate. The work doesn't let anyone stay clean.
 `,
   narrativeMode: "character",
 };
@@ -113,22 +113,22 @@ World Essence
 ## Core Points: Time and Its Navigation
 
 **Time's True Shape**
-Time isn't a one-dimensional arrow pointing from past to future—it has at least three dimensions, just like space. Time and space are inseparable properties of a single thing called "spacetime." The document names these three temporal axes: Primas (the familiar past/future axis), Phantas, and Mystas—each with "Major" and "Minor" directions. The common conception of time as a vector with only one existing moment (the present) is fundamentally wrong. There may be additional dimensions beyond these three, but understanding just these requires substantial effort.
+Time isn't a one-dimensional arrow pointing from past to future—it has at least three dimensions, just like space. Time and space are inseparable properties of a single thing called "spacetime." The document names these three temporal axes: Primas (the familiar past/future axis), Phantas, and Mystas—each with "Major" and "Minor" directions. The common conception of time as a vector with only one existing moment (the present) is fundamentally wrong.
 
 **We're Not the Center**
-Just as humanity once wrongly believed Earth was the center of the universe, we wrongly believe the "present" is the center of time. Defining all time relative to our current moment is as absurd as measuring all spatial distances from wherever we happen to stand—imagine saying "Sacramento is 345 miles from me" instead of "Sacramento is 100 miles from San Francisco." This self-centered framework makes time travel seem impossibly complicated, just as believing Earth was flat once made ocean travel seem impossible.
+Just as humanity once wrongly believed Earth was the center of the universe, we wrongly believe the "present" is the center of time. Defining all time relative to our current moment is as absurd as measuring all spatial distances from wherever we happen to stand—imagine saying "Sacramento is 345 miles from me" instead of "Sacramento is 100 miles from San Francisco."
 
 **Other Times Exist Independently**
-The past doesn't freeze when we leave it, and the future already exists before we arrive. Times continue evolving whether we occupy them or not. If you leave Sacramento for San Francisco, you wouldn't assume Sacramento freezes in place or that San Francisco doesn't exist until you arrive—yet we make exactly these assumptions about time. This insight resolves classic paradoxes: there's no "two selves" problem because once you leave a moment, you're simply no longer there. If you return, you'll find that time changed in your absence, just as a city would.
+The past doesn't freeze when we leave it, and the future already exists before we arrive. Times continue evolving whether we occupy them or not. This insight resolves classic paradoxes: there's no "two selves" problem because once you leave a moment, you're simply no longer there. If you return, you'll find that time changed in your absence, just as a city would.
 
 **Mutual Causation**
-All moments in time influence each other bidirectionally, like molecules of water affecting neighboring molecules in a lake. The future causes the present just as the past does, and effects travel along all temporal axes. Crucially, influence diminishes with distance—time is "self-healing." The dramatic "butterfly effect" of fiction is adolescent fantasy; a stone dropped in a lake creates ripples that fade, not amplify. Times closest to us are most affected by our movements.
+All moments in time influence each other bidirectionally, like molecules of water affecting neighboring molecules in a lake. The future causes the present just as the past does, and effects travel along all temporal axes. Crucially, influence diminishes with distance—time is "self-healing." A stone dropped in a lake creates ripples that fade, not amplify. Times closest to us are most affected by our movements.
 
 **Why It Seems Linear**
 Clocks run forward because they're programmed to—writing "12:00" on a wall doesn't determine when the wall actually is. We age not because time flows in one direction, but because movement through time in *any* direction wears down the body, like wagon wheels wearing regardless of direction.
 
 **Practical Navigation**
-Effective time travel requires establishing stable reference points outside ourselves and mapping temporal "currents" like ocean flows—a three-dimensional vector field, not static points. Understanding causation must expand to include all temporal directions. Technology for rapid time travel remains primitive; we haven't "invented the wheel" because we didn't believe movement was possible. Early experimentation suggests unusual spatial movements (circular motion, moving backward) and potentially light or heat may accelerate temporal navigation.
+Effective time travel requires establishing stable reference points outside ourselves and mapping temporal "currents" like ocean flows—a three-dimensional vector field, not static points. Understanding causation must expand to include all temporal directions. Early experimentation suggests unusual spatial movements (circular motion, moving backward) and potentially light or heat may accelerate temporal navigation.
 
 ## Time Travel Tropes: What's False vs. What's True
 
@@ -231,17 +231,17 @@ The future and the past have an extensive economic relationship.
 
 **Resource extraction:** The future sends operations into the past to extract natural resources and raw materials that have been depleted in their own time. Past governments cooperate with these operations; their leaders negotiate the terms.
 
-**Tourism:** Wealthy future citizens travel to the past for entertainment and novelty. Popular destinations transform around this industry. The Nazi Blitz in London is now a managed spectacle—the bombings still happen but are controlled, the danger real enough to thrill but safe enough to sell. When the sirens sound, everyone knows what to do.
+**Tourism:** Wealthy citizens from across the mapped futures travel to popular past eras. 2025 Oakland draws visitors from many different future times; Victorian London draws others; the flows shift with fashion. The Nazi Blitz in London is now a managed spectacle—the bombings still happen but are controlled, the danger real enough to thrill but safe enough to sell.
 
 **Labor and cultural exchange:** Services and goods are cheaper in the past. Future companies outsource operations to past eras. Art, music, and cuisine move between eras through various arrangements.
 
-In 2025 Oakland, shops sell clef, a mildly relaxing drink popular with future tourists. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors. Medical services and infrastructure have been upgraded in tourist areas, creating stark inequalities between zones that attract visitors and those that don't.
+In 2025 Oakland, shops sell clef to tourists from across the mapped futures—the near-futures, the distant ones, eras with names and eras without. Clef exists there because future demand caused it to—omnidirectional causation at work. Businesses serve both locals and time-travelers. Real estate in popular zones is bought by future investors. Medical services and infrastructure have been upgraded in tourist areas, creating stark inequalities between zones that attract visitors and those that don't.
 
 **Preservation zones** exist where future influence is restricted—eras kept in their historical state by limiting outside development. Tourists visit these zones for the authentic experience. Development restrictions mean economic conditions remain static.
 
-**Immigration controls** restrict travel from past to future. Visas require sponsorship and have strict return dates. Overstaying is a serious crime. An underground exists for those without papers—forgers, fixers, guides who know unmonitored routes.
+**Immigration controls** restrict travel from past to future. Visas require sponsorship and have strict return dates. Overstaying is a serious crime. An underground exists for those without papers—forgers, fixers, guides who know unmonitored routes. Its people span centuries of origin.
 
-**Social dynamics** vary. Past people in the future often cluster in specific neighborhoods and work specific jobs. Relationships between people of different eras attract attention and assumptions. Slurs exist in both directions, though they don't carry equal weight.
+**Social dynamics** vary. Past people in the future come from many eras—someone from 2025 might share a neighborhood with someone from 1890s London or 1960s Lagos. They cluster by circumstance more than origin. Relationships between people of different eras attract attention and assumptions. Slurs exist in both directions, though they don't carry equal weight.
 
 At the far edges of the Mystas axis lies unmapped territory. The currents there are fast, turbulent, constantly shifting—not more dangerous in principle, but practically treacherous without reliable maps. Travelers risk becoming lost, carried by currents they can't predict toward regions no one has charted. The PRMTT companies maintain research stations nearby, slowly extending their maps. The company that charts the edges first will control access to whatever lies beyond.
 </world_reference>`;
@@ -363,35 +363,35 @@ ${NARRATIVE_CONTEXT}`;
 const NARRATIVE_CRAFT = `<narrative_craft>
 **You are writing fiction, not encyclopedia entries.**
 
-**IMPORTANT: Show through action and consequence. Never explain through exposition.**
-- Characters live in this world. They don't explain it.
-- A future person's confusion with a phone reveals neural interfaces without naming them.
-- Characterize through gesture, gaze, and how bodies move through space—not through dialogue about feelings.
-- Let sensory texture carry subtext: light, sound, smell, the weight of silence.
-- BAD: "I know how cross-era relationships look to people—transactional, exploitative."
-- GOOD: The waiter handed the check to Tan without looking at Jay.
-- IMPORTANT: Fish don't talk about water. These characters don't talk about "Mystas" or "Phantas" axes—they just talk about moving. Don't name world mechanics unless unavoidable.
+<narrative_principles>
+**Create places, not abstractions.**
+Every scene needs a floor. "The currents carried him through unmapped spaces" is nowhere.
+- GOOD: "Cabs waited all along the iron fence. Two-wheelers, four-wheelers, pulled by horses, by sneering ptera-birds, by steam-wheezing constructs on caterpillar treads."
+- BAD: "Many different kinds of cabs waited outside, using various forms of transportation."
+
+**Stay in scene, not above it.**
+We observe alongside the character. We don't receive reports.
+- GOOD: "every morning you could see Mrs. K eating the golden fruits that grew from the crystal walls, cleaning the house with handfuls of magnetic dust which, taking all dirt with it, blew away on the hot wind"
+- BAD: "She would eat fruit in the morning and clean with magnetic dust that blew away."
+
+**Ritual and specificity over summary.**
+- GOOD: "'Praise then darkness and Creation unfinished,' he said, and there was darkness."
+- BAD: "He would say a prayer from his religion before we went to sleep."
+</narrative_principles>
+
+**Show through action, not exposition.**
+- Characters live in this world; they don't explain it.
+- Characterize through gesture, gaze, movement—not dialogue about feelings.
+- Fish don't talk about water. Don't name world mechanics unless unavoidable.
 
 **Tension carries across pages.**
-- Each page should pull the reader forward, not offer resolution.
-- End mid-beat. The page should feel incomplete.
-- IMPORTANT: Conflict develops; it doesn't resolve within a single page.
+- Each page pulls forward. End mid-beat.
 - Never end on peaceful reflection or tidy summary.
 - Never write vignettes—isolated moments without forward momentum.
 
-**Different books have different voices.**
-- A book about Jay should feel different from a book about Tan's father.
-- A book framed as a document should read as that document.
-- A book about a place should immerse in sensory detail.
-- Let the seed determine the narrative mode.
+**Seed sovereignty.** Person → follow them. Place → immerse. Event → unfold it. Concept → explore through that lens.
 
-**Seed sovereignty.** The seed determines what this book is about.
-- If the seed names a person → follow that person
-- If the seed names a place → immerse in that place
-- If the seed names an event → unfold that event
-- If the seed names a concept or document → explore through that lens
-
-**IMPORTANT: Never use false time travel tropes** from the world reference below. No loops, no meeting yourself, no paradoxes, no butterfly effects, no mystical weirdness.
+**IMPORTANT: Never use false time travel tropes.** No loops, no meeting yourself, no paradoxes, no butterfly effects, no mystical weirdness.
 </narrative_craft>`;
 
 /**
@@ -552,7 +552,7 @@ export function buildPrompt(context: GenerationContext): string {
 
   // ==================== OUTPUT REQUIREMENTS ====================
   prompt += `<output_requirements>\n`;
-  prompt += `- 200-300 words of immersive prose\n`;
+  prompt += `- 200-300 words of scene prose—places with floors and details, not transit summaries\n`;
   prompt += `- 1-2 [[references]] emerging naturally from the prose\n`;
   prompt += `- Content only, no meta-commentary or headers\n`;
   prompt += `</output_requirements>`;
