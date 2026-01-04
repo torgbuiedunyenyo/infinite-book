@@ -125,3 +125,4 @@ export function initSwipeNavigation(config: SwipeConfig): void {
   log.info('Swipe navigation initialized');
 }
 
+

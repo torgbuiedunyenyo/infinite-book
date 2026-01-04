@@ -17,12 +17,14 @@ import {
   onReferenceClick,
   updateNavArrows,
   showWaitingMessage,
+  onFavoriteToggle,
 } from './renderer';
-import { initSidebar, onBookSelect, isSidebarOpen } from './sidebar';
+import { initSidebar, onBookSelect, onFavoriteSelect, isSidebarOpen } from './sidebar';
 import { shouldShowTour, startTour } from './tour';
 import { initSwipeNavigation } from './swipe';
 import { PageData, Reference } from './types';
 import { appLogger, apiLogger, cacheLogger } from './logger';
+import { recordVisit, toggleFavorite, isFavorite } from './readingHistory';
 
 const log = appLogger;
 
@@ -928,9 +930,12 @@ async function navigateTo(seed: string, page: number, referrer?: ReferrerInfo): 
   // Track reading position for continuous pre-generation chaining
   currentReadingPosition = { seed, page };
   
+  // Record this visit to reading history
+  recordVisit(seed, page);
+  
   setCurrentLocation({ seed, page });
   setCurrentSeed(seed);
-  setPageNumber(page);
+  setPageNumber(page, isFavorite(seed, page));
   updateNavArrows(page);
   setLoading(true);
   
@@ -1145,6 +1150,20 @@ async function init(): Promise<void> {
   onBookSelect((seed: string) => {
     log.info('Book selected from sidebar', { seed });
     navigateTo(seed, 1);
+  });
+  
+  // Set up sidebar favorite selection handler (navigates to specific page)
+  onFavoriteSelect((seed: string, page: number) => {
+    log.info('Favorite selected from sidebar', { seed, page });
+    navigateTo(seed, page);
+  });
+  
+  // Set up favorite toggle handler
+  onFavoriteToggle((seed: string, page: number) => {
+    log.info('Favorite toggled', { seed, page });
+    const newState = toggleFavorite(seed, page);
+    log.info('Favorite state changed', { seed, page, isFavorite: newState });
+    return newState;
   });
   
   // Set up click handlers

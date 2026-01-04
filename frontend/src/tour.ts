@@ -39,8 +39,15 @@ const TOUR_STEPS: TourStep[] = [
     marginNote: true,
   },
   {
+    target: '.favorite-button',
+    content: 'Found a page you love? Tap the bookmark to save it to your favorites.',
+    position: 'bottom',
+    marginNote: true,
+    waitForTarget: true,
+  },
+  {
     target: '.sidebar-trigger',
-    content: 'Your library. Every book anyone has touched can be returned to here.',
+    content: 'Your library. Every book anyone has touched can be returned to here—and you\'ll see which ones you\'ve read.',
     position: 'right',
     marginNote: true,
   },

@@ -1,4 +1,10 @@
 import { DiscoveredBook, BooksResponse } from './types';
+import {
+  hasVisitedBook,
+  bookHasFavorites,
+  getFavorites,
+  getHighestVisitedPage,
+} from './readingHistory';
 
 // Sidebar state
 let isOpen = false;
@@ -7,6 +13,7 @@ let filteredBooks: DiscoveredBook[] = [];
 let searchQuery = '';
 let isLoading = false;
 let bookSelectHandler: ((seed: string) => void) | null = null;
+let currentTab: 'all' | 'favorites' = 'all';
 
 // DOM elements (created dynamically)
 let sidebarOverlay: HTMLElement | null = null;
@@ -14,6 +21,7 @@ let sidebarPanel: HTMLElement | null = null;
 let searchInput: HTMLInputElement | null = null;
 let booksList: HTMLElement | null = null;
 let triggerButton: HTMLElement | null = null;
+let tabsContainer: HTMLElement | null = null;
 
 /**
  * Initialize the sidebar by creating DOM elements and attaching handlers
@@ -97,7 +105,7 @@ async function fetchBooks(): Promise<void> {
   if (isLoading) return;
   
   isLoading = true;
-  renderBooksList();
+  renderCurrentTab();
   
   try {
     const response = await fetch('/api/books');
@@ -109,7 +117,7 @@ async function fetchBooks(): Promise<void> {
     console.error('Failed to fetch books:', error);
   } finally {
     isLoading = false;
-    renderBooksList();
+    renderCurrentTab();
   }
 }
 
@@ -145,7 +153,7 @@ function filterBooks(): void {
     filteredBooks = sortBooksWithCoreFirst(filtered);
   }
   
-  renderBooksList();
+  renderCurrentTab();
 }
 
 /**
@@ -180,6 +188,17 @@ function formatRelativeTime(dateString: string): string {
 }
 
 /**
+ * Render content based on current tab
+ */
+function renderCurrentTab(): void {
+  if (currentTab === 'favorites') {
+    renderFavoritesList();
+  } else {
+    renderBooksList();
+  }
+}
+
+/**
  * Render the books list
  */
 function renderBooksList(): void {
@@ -188,7 +207,7 @@ function renderBooksList(): void {
   if (isLoading) {
     booksList.innerHTML = `
       <div class="sidebar-empty">
-        <div class="sidebar-empty-icon">📚</div>
+        <div class="sidebar-empty-icon">${BOOKMARK_OUTLINE_SVG}</div>
         <p>Loading the library...</p>
       </div>
     `;
@@ -198,7 +217,7 @@ function renderBooksList(): void {
   if (books.length === 0) {
     booksList.innerHTML = `
       <div class="sidebar-empty">
-        <div class="sidebar-empty-icon">📖</div>
+        <div class="sidebar-empty-icon">${BOOKMARK_OUTLINE_SVG}</div>
         <p>The library awaits...</p>
         <p class="sidebar-empty-hint">No books have been discovered yet. Begin reading to explore.</p>
       </div>
@@ -209,7 +228,7 @@ function renderBooksList(): void {
   if (filteredBooks.length === 0) {
     booksList.innerHTML = `
       <div class="sidebar-empty">
-        <div class="sidebar-empty-icon">🔍</div>
+        <div class="sidebar-empty-icon">${BOOKMARK_OUTLINE_SVG}</div>
         <p>No books found</p>
         <p class="sidebar-empty-hint">Try a different search term</p>
       </div>
@@ -217,19 +236,98 @@ function renderBooksList(): void {
     return;
   }
   
-  const booksHtml = filteredBooks.map(book => `
-    <button class="sidebar-book" data-seed="${escapeAttr(book.seed)}">
-      <div class="sidebar-book-title">${escapeHtml(book.seed)}</div>
-      <div class="sidebar-book-meta">
-        ${book.pageCount} page${book.pageCount === 1 ? '' : 's'} · discovered ${formatRelativeTime(book.firstDiscoveredAt)}
-      </div>
-    </button>
-  `).join('');
+  const booksHtml = filteredBooks.map(book => {
+    const visited = hasVisitedBook(book.seed);
+    const hasFavorites = bookHasFavorites(book.seed);
+    const highestRead = visited ? getHighestVisitedPage(book.seed) : 0;
+    
+    const visitedClass = visited ? 'visited' : '';
+    const bookmarkIcon = visited ? BOOKMARK_FILLED_SVG : BOOKMARK_OUTLINE_SVG;
+    
+    // Build meta text
+    let metaText = `${book.pageCount} page${book.pageCount === 1 ? '' : 's'}`;
+    if (visited && highestRead > 0) {
+      metaText += ` · read to p.${highestRead}`;
+    }
+    if (hasFavorites) {
+      metaText += ` ${STAR_SVG}`;
+    }
+    
+    return `
+      <button class="sidebar-book ${visitedClass}" data-seed="${escapeAttr(book.seed)}">
+        <div class="sidebar-book-indicator">${bookmarkIcon}</div>
+        <div class="sidebar-book-content">
+          <div class="sidebar-book-title">${escapeHtml(book.seed)}</div>
+          <div class="sidebar-book-meta">${metaText}</div>
+        </div>
+      </button>
+    `;
+  }).join('');
   
   booksList.innerHTML = booksHtml;
   
   // Attach click handlers
-  const bookButtons = booksList.querySelectorAll('.sidebar-book');
+  attachBookClickHandlers();
+}
+
+/**
+ * Render favorites list
+ */
+function renderFavoritesList(): void {
+  if (!booksList) return;
+  
+  const favorites = getFavorites();
+  
+  // Apply search filter if there's a query
+  const filteredFavorites = searchQuery
+    ? favorites.filter(fav => fav.seed.toLowerCase().includes(searchQuery.toLowerCase()))
+    : favorites;
+  
+  if (favorites.length === 0) {
+    booksList.innerHTML = `
+      <div class="sidebar-empty">
+        <div class="sidebar-empty-icon">${BOOKMARK_OUTLINE_SVG}</div>
+        <p>No favorites yet</p>
+        <p class="sidebar-empty-hint">Click the bookmark icon on any page to save it here.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  if (filteredFavorites.length === 0) {
+    booksList.innerHTML = `
+      <div class="sidebar-empty">
+        <div class="sidebar-empty-icon">${BOOKMARK_OUTLINE_SVG}</div>
+        <p>No favorites match</p>
+        <p class="sidebar-empty-hint">Try a different search term</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const favoritesHtml = filteredFavorites.map(fav => `
+    <button class="sidebar-book sidebar-favorite" data-seed="${escapeAttr(fav.seed)}" data-page="${fav.page}">
+      <div class="sidebar-book-indicator">${BOOKMARK_FILLED_SVG}</div>
+      <div class="sidebar-book-content">
+        <div class="sidebar-book-title">${escapeHtml(fav.seed)}</div>
+        <div class="sidebar-book-meta">Page ${fav.page} · saved ${formatRelativeTime(new Date(fav.timestamp).toISOString())}</div>
+      </div>
+    </button>
+  `).join('');
+  
+  booksList.innerHTML = favoritesHtml;
+  
+  // Attach click handlers for favorites (navigate to specific page)
+  attachFavoriteClickHandlers();
+}
+
+/**
+ * Attach click handlers to book buttons
+ */
+function attachBookClickHandlers(): void {
+  if (!booksList) return;
+  
+  const bookButtons = booksList.querySelectorAll('.sidebar-book:not(.sidebar-favorite)');
   bookButtons.forEach(button => {
     button.addEventListener('click', () => {
       const seed = (button as HTMLElement).dataset.seed;
@@ -239,6 +337,64 @@ function renderBooksList(): void {
       }
     });
   });
+}
+
+/**
+ * Attach click handlers to favorite buttons (navigates to specific page)
+ */
+function attachFavoriteClickHandlers(): void {
+  if (!booksList) return;
+  
+  const favButtons = booksList.querySelectorAll('.sidebar-favorite');
+  favButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const seed = (button as HTMLElement).dataset.seed;
+      const page = parseInt((button as HTMLElement).dataset.page || '1', 10);
+      if (seed && favoriteSelectHandler) {
+        favoriteSelectHandler(seed, page);
+        closeSidebar();
+      } else if (seed && bookSelectHandler) {
+        // Fallback to book handler (goes to page 1)
+        bookSelectHandler(seed);
+        closeSidebar();
+      }
+    });
+  });
+}
+
+/**
+ * Handler for when a favorite page is selected
+ */
+let favoriteSelectHandler: ((seed: string, page: number) => void) | null = null;
+
+/**
+ * Register a handler for when a favorited page is selected
+ */
+export function onFavoriteSelect(handler: (seed: string, page: number) => void): void {
+  favoriteSelectHandler = handler;
+}
+
+/**
+ * Switch to a different tab
+ */
+function switchTab(tab: 'all' | 'favorites'): void {
+  if (currentTab === tab) return;
+  
+  currentTab = tab;
+  
+  // Update tab button states
+  const tabs = tabsContainer?.querySelectorAll('.sidebar-tab');
+  tabs?.forEach(tabEl => {
+    const tabName = (tabEl as HTMLElement).dataset.tab;
+    if (tabName === tab) {
+      tabEl.classList.add('active');
+    } else {
+      tabEl.classList.remove('active');
+    }
+  });
+  
+  // Re-render the list
+  renderCurrentTab();
 }
 
 /**
@@ -260,6 +416,13 @@ function createSidebarElements(): void {
       <h2 class="sidebar-title">The Library</h2>
       <button class="sidebar-close" aria-label="Close library">✕</button>
     </div>
+    <div class="sidebar-tabs" id="sidebar-tabs">
+      <button class="sidebar-tab active" data-tab="all">All Books</button>
+      <button class="sidebar-tab" data-tab="favorites">
+        ${BOOKMARK_FILLED_SVG}
+        <span>Favorites</span>
+      </button>
+    </div>
     <div class="sidebar-search">
       <input 
         type="text" 
@@ -280,6 +443,7 @@ function createSidebarElements(): void {
   // Get references to created elements
   searchInput = document.getElementById('sidebar-search-input') as HTMLInputElement;
   booksList = document.getElementById('sidebar-books-list');
+  tabsContainer = document.getElementById('sidebar-tabs');
 }
 
 /**
@@ -317,6 +481,17 @@ function attachEventListeners(): void {
   const closeButton = sidebarPanel?.querySelector('.sidebar-close');
   closeButton?.addEventListener('click', () => {
     closeSidebar();
+  });
+  
+  // Tab buttons
+  const tabButtons = tabsContainer?.querySelectorAll('.sidebar-tab');
+  tabButtons?.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabName = (tab as HTMLElement).dataset.tab as 'all' | 'favorites';
+      if (tabName) {
+        switchTab(tabName);
+      }
+    });
   });
   
   // Search input
@@ -369,6 +544,27 @@ function isInputFocused(): boolean {
   return activeElement instanceof HTMLInputElement || 
          activeElement instanceof HTMLTextAreaElement;
 }
+
+/**
+ * Bookmark SVG icon (filled) - for visited books
+ */
+const BOOKMARK_FILLED_SVG = `<svg class="bookmark-icon bookmark-filled" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 2a2 2 0 0 0-2 2v18l8-3 8 3V4a2 2 0 0 0-2-2H6z"/>
+</svg>`;
+
+/**
+ * Bookmark SVG icon (outline) - for unvisited books
+ */
+const BOOKMARK_OUTLINE_SVG = `<svg class="bookmark-icon bookmark-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 2a2 2 0 0 0-2 2v18l8-3 8 3V4a2 2 0 0 0-2-2H6z"/>
+</svg>`;
+
+/**
+ * Star SVG icon - for favorites indicator
+ */
+const STAR_SVG = `<svg class="star-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+</svg>`;
 
 /**
  * Escape HTML for safe rendering

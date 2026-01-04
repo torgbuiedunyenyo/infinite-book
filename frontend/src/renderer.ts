@@ -30,6 +30,7 @@ log.debug('DOM elements captured', {
 let currentReferences: Reference[] = [];
 let currentSeed: string = '';
 let currentPageNumber: number = 1;
+let currentIsFavorite: boolean = false;
 
 // Stats
 let totalRenders = 0;
@@ -37,10 +38,94 @@ let totalChunks = 0;
 let totalFinalizations = 0;
 let referenceClickCount = 0;
 
-export function setPageNumber(num: number): void {
-  log.debug('Setting page number', { pageNumber: num });
-  pageNumberEl.textContent = `p. ${num}`;
+// Favorite toggle handler
+let favoriteToggleHandler: ((seed: string, page: number) => boolean) | null = null;
+
+/**
+ * Bookmark SVG icon (filled) - for favorited pages
+ */
+const BOOKMARK_FILLED_SVG = `<svg class="bookmark-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 2a2 2 0 0 0-2 2v18l8-3 8 3V4a2 2 0 0 0-2-2H6z"/>
+</svg>`;
+
+/**
+ * Bookmark SVG icon (outline) - for non-favorited pages
+ */
+const BOOKMARK_OUTLINE_SVG = `<svg class="bookmark-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6 2a2 2 0 0 0-2 2v18l8-3 8 3V4a2 2 0 0 0-2-2H6z"/>
+</svg>`;
+
+export function setPageNumber(num: number, isFavorite: boolean = false): void {
+  log.debug('Setting page number', { pageNumber: num, isFavorite });
   currentPageNumber = num;
+  currentIsFavorite = isFavorite;
+  
+  // Render page number with favorite button
+  renderPageHeader();
+}
+
+/**
+ * Render the page number header with favorite button
+ */
+function renderPageHeader(): void {
+  const favoriteClass = currentIsFavorite ? 'active' : '';
+  const bookmarkIcon = currentIsFavorite ? BOOKMARK_FILLED_SVG : BOOKMARK_OUTLINE_SVG;
+  const title = currentIsFavorite ? 'Remove from favorites' : 'Add to favorites';
+  
+  pageNumberEl.innerHTML = `
+    <span class="page-number-text">p. ${currentPageNumber}</span>
+    <button class="favorite-button ${favoriteClass}" aria-label="${title}" title="${title}">
+      ${bookmarkIcon}
+    </button>
+  `;
+  
+  // Attach click handler
+  const favoriteBtn = pageNumberEl.querySelector('.favorite-button');
+  favoriteBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleFavoriteToggle();
+  });
+}
+
+/**
+ * Handle clicking the favorite button
+ */
+function handleFavoriteToggle(): void {
+  if (!favoriteToggleHandler || !currentSeed) {
+    log.warn('Favorite toggle not handled', {
+      hasHandler: !!favoriteToggleHandler,
+      hasSeed: !!currentSeed,
+    });
+    return;
+  }
+  
+  log.info('Favorite button clicked', {
+    seed: currentSeed,
+    page: currentPageNumber,
+    wasFavorite: currentIsFavorite,
+  });
+  
+  // Call the handler and update local state
+  const newState = favoriteToggleHandler(currentSeed, currentPageNumber);
+  currentIsFavorite = newState;
+  
+  // Re-render the header with updated state
+  renderPageHeader();
+  
+  log.info('Favorite state updated', {
+    seed: currentSeed,
+    page: currentPageNumber,
+    isFavorite: currentIsFavorite,
+  });
+}
+
+/**
+ * Register a handler for favorite toggle
+ */
+export function onFavoriteToggle(handler: (seed: string, page: number) => boolean): void {
+  log.debug('Favorite toggle handler registered');
+  favoriteToggleHandler = handler;
 }
 
 export function setCurrentSeed(seed: string): void {
