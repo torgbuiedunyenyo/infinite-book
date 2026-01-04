@@ -11,13 +11,30 @@ import {
   ensureRunningSummaryUpdated,
 } from './summaryService';
 import { scheduleEvaluation } from './evaluationService';
-import { buildPrompt, CORE_NARRATIVE_SEED } from '../prompts/templates';
+import { buildPrompt, CORE_NARRATIVE_SEED, getSystemPrompt } from '../prompts/templates';
 import { generatorLogger } from './logger';
 
 // ==================== CONTEXT REQUIREMENTS ====================
 // Strong guarantees: no timeouts, retry until success
 const CONTEXT_POLL_INTERVAL = 2000; // Check every 2 seconds (for initial background task completion)
 const INITIAL_WAIT_MS = 30000;      // Wait 30s for background tasks before taking over
+
+// ==================== COMPLETE PROMPT BUILDER ====================
+/**
+ * Build the complete prompt that was sent to Claude, including both system and user prompts.
+ * This is stored in the database for complete reproducibility.
+ */
+function buildCompletePrompt(userPrompt: string, isCoreSeed: boolean): string {
+  const systemPrompt = getSystemPrompt(isCoreSeed);
+  
+  return `=== SYSTEM PROMPT ===
+
+${systemPrompt}
+
+=== USER PROMPT ===
+
+${userPrompt}`;
+}
 const ARC_GENERATION_MAX_RETRIES = 5; // Max attempts to generate book arc
 
 const log = generatorLogger;
@@ -762,6 +779,9 @@ async function doGeneratePage(
   const closing = extractClosing(content);
   const references = extractReferences(content);
 
+  // Build the complete prompt (system + user) for storage
+  const completePrompt = buildCompletePrompt(prompt, isCoreSeed);
+
   // Build page object
   const newPage: Page = {
     seed,
@@ -770,7 +790,7 @@ async function doGeneratePage(
     opening,
     closing,
     references,
-    generationPrompt: prompt,
+    generationPrompt: completePrompt,
     // Only store referrer for page 1 (how this book was discovered)
     referrerSeed: pageNumber === 1 && referrerContext ? referrerContext.seed : undefined,
     referrerPage: pageNumber === 1 && referrerContext ? referrerContext.pageNumber : undefined,
@@ -1040,6 +1060,9 @@ export async function* streamOrGetPage(
     const closing = extractClosing(fullContent);
     const references = extractReferences(fullContent);
 
+    // Build the complete prompt (system + user) for storage
+    const completePrompt = buildCompletePrompt(prompt, isCoreSeed);
+
     // Build page object
     const newPage: Page = {
       seed,
@@ -1048,7 +1071,7 @@ export async function* streamOrGetPage(
       opening,
       closing,
       references,
-      generationPrompt: prompt,
+      generationPrompt: completePrompt,
       // Only store referrer for page 1 (how this book was discovered)
       referrerSeed: pageNumber === 1 && referrerContext ? referrerContext.seed : undefined,
       referrerPage: pageNumber === 1 && referrerContext ? referrerContext.pageNumber : undefined,
