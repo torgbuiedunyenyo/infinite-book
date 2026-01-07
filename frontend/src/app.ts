@@ -1178,6 +1178,14 @@ async function init(): Promise<void> {
   document.getElementById('nav-left')!.addEventListener('click', handleNavLeft);
   document.getElementById('nav-right')!.addEventListener('click', handleNavRight);
   
+  // Set up colophon toggle
+  const colophon = document.getElementById('colophon');
+  if (colophon) {
+    colophon.addEventListener('click', () => {
+      colophon.classList.toggle('expanded');
+    });
+  }
+  
   // Set up keyboard handlers
   log.debug('Setting up keyboard handlers');
   document.addEventListener('keydown', handleKeyDown);

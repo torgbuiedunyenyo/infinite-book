@@ -10,6 +10,7 @@ interface TourStep {
   position: 'top' | 'bottom' | 'left' | 'right';
   marginNote?: boolean;     // Style as margin note vs centered overlay
   waitForTarget?: boolean;  // Wait for target to exist before showing
+  scrollIntoView?: boolean; // Scroll target into view before showing
 }
 
 const TOUR_STEPS: TourStep[] = [
@@ -50,6 +51,13 @@ const TOUR_STEPS: TourStep[] = [
     content: 'Your library. Every book anyone has touched can be returned to here—and you\'ll see which ones you\'ve read.',
     position: 'right',
     marginNote: true,
+  },
+  {
+    target: '#colophon',
+    content: 'The Shape of Time is a hyperbook crafted by Jeremy Kirshbaum. If you explore it, please let him know what you think at jjkirshbaum@gmail.com.',
+    position: 'top',
+    marginNote: true,
+    scrollIntoView: true,
   },
 ];
 
@@ -146,6 +154,13 @@ async function showStep(index: number): Promise<void> {
     log.warn('Tour target not found, skipping', { target: step.target });
     nextStep();
     return;
+  }
+  
+  // Scroll target into view if needed (e.g., for colophon at bottom of page)
+  if (step.scrollIntoView) {
+    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Wait for scroll to complete
+    await new Promise(resolve => setTimeout(resolve, 400));
   }
   
   // Position spotlight around target
